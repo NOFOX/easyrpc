@@ -26,7 +26,7 @@ public:
 
     ~connection()
     {
-        stop_timer();
+        /* stop_timer(); */
         disconnect();
     }
 
@@ -66,12 +66,13 @@ public:
 private:
     void read_head()
     {
-        start_timer();
+        /* start_timer(); */
         auto self(this->shared_from_this());
         boost::asio::async_read(socket_, boost::asio::buffer(head_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
-            auto guard = make_guard([this, self]{ stop_timer(); disconnect(); });
+            /* auto guard = make_guard([this, self]{ stop_timer(); disconnect(); }); */
+            auto guard = make_guard([this, self]{ disconnect(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -107,7 +108,9 @@ private:
         boost::asio::async_read(socket_, boost::asio::buffer(protocol_and_body_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
-            stop_timer();
+            read_head();
+
+            /* stop_timer(); */
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
