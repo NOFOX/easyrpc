@@ -1,6 +1,7 @@
 #ifndef _SERVER_H
 #define _SERVER_H
 
+#include <iostream>
 #include "io_service_pool.hpp"
 #include "router.hpp"
 #include "connection.hpp"
@@ -143,6 +144,7 @@ private:
             std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_);
         acceptor_.async_accept(conn->socket(), [this, conn](boost::system::error_code ec)
         {
+            std::cout << "####################### connect" << std::endl;
             if (!ec)
             {
                 conn->start();
