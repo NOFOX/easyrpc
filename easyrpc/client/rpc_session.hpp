@@ -46,6 +46,7 @@ public:
             timer_thread_ = std::make_unique<std::thread>([this]{ timer_ios_.run(); });
         }
         connect();
+        is_connected_ = true;
     }
 
     void stop()
@@ -56,6 +57,11 @@ public:
 
     std::vector<char> call(const std::string& protocol, const call_mode& mode, const std::string& body)
     {
+        if (!is_connected_)
+        {
+            connect();
+            is_connected_ = true;
+        }
         write(protocol, mode, body);
         return read();
     }
@@ -67,6 +73,7 @@ public:
 
     void disconnect()
     {
+        is_connected_ = false;
         if (socket_.is_open())
         {
             boost::system::error_code ignore_ec;
@@ -106,6 +113,7 @@ private:
         boost::asio::write(socket_, buffer, ec);
         if (ec)
         {
+            is_connected_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -125,6 +133,7 @@ private:
         boost::asio::read(socket_, boost::asio::buffer(head_), ec);
         if (ec)
         {
+            is_connected_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -146,6 +155,7 @@ private:
         boost::asio::read(socket_, boost::asio::buffer(body_), ec); 
         if (ec)
         {
+            is_connected_ = false;
             throw std::runtime_error(ec.message());
         }
         return body_;
@@ -210,6 +220,7 @@ private:
     std::unique_ptr<std::thread> timer_thread_;
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
+    bool is_connected_ = false;
 };
 
 }

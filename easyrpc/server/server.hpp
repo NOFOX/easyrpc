@@ -144,7 +144,6 @@ private:
             std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_);
         acceptor_.async_accept(conn->socket(), [this, conn](boost::system::error_code ec)
         {
-            std::cout << "####################### connect" << std::endl;
             if (!ec)
             {
                 conn->start();

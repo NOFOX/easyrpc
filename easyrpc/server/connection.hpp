@@ -26,7 +26,6 @@ public:
 
     ~connection()
     {
-        /* stop_timer(); */
         disconnect();
     }
 
@@ -66,13 +65,10 @@ public:
 private:
     void read_head()
     {
-        /* start_timer(); */
         auto self(this->shared_from_this());
         boost::asio::async_read(socket_, boost::asio::buffer(head_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
-            /* auto guard = make_guard([this, self]{ stop_timer(); disconnect(); }); */
-            auto guard = make_guard([this, self]{ disconnect(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -88,7 +84,6 @@ private:
             if (check_head())
             {
                 read_protocol_and_body();
-                guard.dismiss();
             }
         });
     }
@@ -110,14 +105,12 @@ private:
         {
             read_head();
 
-            /* stop_timer(); */
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
                 return;
             }
 
-            auto guard = make_guard([this, self]{ disconnect(); });
             if (ec)
             {
                 log_warn(ec.message());
@@ -132,7 +125,6 @@ private:
                 log_warn("Router failed");
                 return;
             }
-            guard.dismiss();
         });
     }
 
