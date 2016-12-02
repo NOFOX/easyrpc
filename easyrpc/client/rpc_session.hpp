@@ -55,7 +55,17 @@ public:
         stop_timer_thread();
     }
 
-    std::vector<char> call(const std::string& protocol, const call_mode& mode, const std::string& body)
+    void call_one_way(const std::string& protocol, const call_mode& mode, const std::string& body)
+    {
+        if (!is_connected_)
+        {
+            connect();
+            is_connected_ = true;
+        }
+        write(protocol, mode, body);
+    }
+
+    std::vector<char> call_two_way(const std::string& protocol, const call_mode& mode, const std::string& body)
     {
         if (!is_connected_)
         {

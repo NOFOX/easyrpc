@@ -30,7 +30,10 @@ public:
             parser_util parser(body);
             std::string result;
             func_(parser, result);
-            conn->write(result);
+            if (!result.empty())
+            {
+                conn->write(result);
+            }
         }
         catch (std::exception& e)
         {
@@ -63,7 +66,10 @@ public:
         {
             std::string result;
             func_(body, result);
-            conn->write(result);
+            if (!result.empty())
+            {
+                conn->write(result);
+            }
         }
         catch (std::exception& e)
         {
@@ -192,10 +198,9 @@ public:
 private:
     template<typename Function, typename... Args>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Args...)>::type>::value>::type
-    call(const Function& func, const std::tuple<Args...>& tp, std::string& result)
+    call(const Function& func, const std::tuple<Args...>& tp, std::string&)
     {
         call_impl(func, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        result = pack();
     }
 
     template<typename Function, typename... Args>
@@ -203,7 +208,6 @@ private:
     call(const Function& func, const std::tuple<Args...>& tp, std::string& result)
     {
         auto ret = call_impl(func, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        // 将ret序列化放入result
         result = pack(ret);
     }
 
@@ -215,10 +219,9 @@ private:
 
     template<typename Function, typename Self, typename... Args>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Self, Args...)>::type>::value>::type
-    call_member(const Function& func, Self* self, const std::tuple<Args...>& tp, std::string& result)
+    call_member(const Function& func, Self* self, const std::tuple<Args...>& tp, std::string&)
     {
         call_member_impl(func, self, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        result = pack();
     }
 
     template<typename Function, typename Self, typename... Args>
@@ -226,7 +229,6 @@ private:
     call_member(const Function& func, Self* self, const std::tuple<Args...>& tp, std::string& result)
     {
         auto ret = call_member_impl(func, self, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        // 将ret序列化放入result
         result = pack(ret);
     }
 
@@ -238,10 +240,9 @@ private:
 
     template<typename Function>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(std::string)>::type>::value>::type
-    call_raw(const Function& func, const std::string& body, std::string& result)
+    call_raw(const Function& func, const std::string& body, std::string&)
     {
         func(body);
-        result = "";
     }
 
     template<typename Function>
@@ -253,10 +254,9 @@ private:
 
     template<typename Function, typename Self>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Self, std::string)>::type>::value>::type
-    call_member_raw(const Function& func, Self* self, const std::string& body, std::string& result)
+    call_member_raw(const Function& func, Self* self, const std::string& body, std::string&)
     {
         (*self.*func)(body);
-        result = "";
     }
 
     template<typename Function, typename Self>
