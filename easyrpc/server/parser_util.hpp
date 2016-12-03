@@ -2,18 +2,10 @@
 #define _PARSER_UTIL_H
 
 #include <type_traits>
-#include <easypack/easypack.hpp>
+#include "base/serialize_util.hpp"
 
 namespace easyrpc
 {
-
-template<typename... Args>
-std::string pack(Args... args)
-{
-    easypack::pack p;
-    p.pack_args(std::forward<Args>(args)...);
-    return p.get_string();
-}
 
 class parser_util
 {

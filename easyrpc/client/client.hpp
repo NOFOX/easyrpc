@@ -60,15 +60,15 @@ public:
     typename std::enable_if<std::is_void<typename Protocol::return_type>::value, typename Protocol::return_type>::type
     call(const Protocol& protocol, Args&&... args)
     {
-        session_.call_one_way(protocol.name(), call_mode::non_raw, protocol.pack(std::forward<Args>(args)...));
+        session_.call_one_way(protocol.name(), call_mode::non_raw, serialize(std::forward<Args>(args)...));
     }
 
     template<typename Protocol, typename... Args>
     typename std::enable_if<!std::is_void<typename Protocol::return_type>::value, typename Protocol::return_type>::type
     call(const Protocol& protocol, Args&&... args)
     {
-        auto ret = session_.call_two_way(protocol.name(), call_mode::non_raw, protocol.pack(std::forward<Args>(args)...));
-        return protocol.unpack(std::string(&ret[0], ret.size()));
+        auto ret = session_.call_two_way(protocol.name(), call_mode::non_raw, serialize(std::forward<Args>(args)...));
+        return protocol.deserialize(std::string(&ret[0], ret.size()));
     }
 
     template<typename ReturnType>
@@ -84,6 +84,17 @@ public:
     {
         auto ret = session_.call_two_way(protocol, call_mode::raw, body);
         return std::string(&ret[0], ret.size());
+    }
+
+    template<typename... Args>
+    void publish(const std::string& topic_name, Args&&... args)
+    {
+        session_.call_one_way(topic_name, call_mode::non_raw, serialize(std::forward<Args>(args)...));
+    }
+
+    void publish_raw(const std::string& topic_name, const std::string& body)
+    {
+        session_.call_one_way(topic_name, call_mode::raw, body);
     }
 
 private:

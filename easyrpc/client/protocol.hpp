@@ -4,7 +4,7 @@
 #include <string>
 #include <type_traits>
 #include "base/function_traits.hpp"
-#include "easypack/easypack.hpp"
+#include "base/serialize_util.hpp"
 
 #define EASYRPC_RPC_PROTOCOL_DEFINE(handler, func_type) const static easyrpc::protocol_define<func_type> handler { #handler }
 
@@ -21,14 +21,7 @@ public:
     using return_type = typename function_traits<Return(Args...)>::return_type;
     explicit protocol_define(std::string name) : name_(std::move(name)) {}
 
-    std::string pack(Args... args) const
-    {
-        easypack::pack p;
-        p.pack_args(std::forward<Args>(args)...);
-        return p.get_string();
-    }
-
-    return_type unpack(const std::string& text) const
+    return_type deserialize(const std::string& text) const
     {
         easypack::unpack up(text);
         return_type ret;

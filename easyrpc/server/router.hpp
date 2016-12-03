@@ -208,7 +208,7 @@ private:
     call(const Function& func, const std::tuple<Args...>& tp, std::string& result)
     {
         auto ret = call_impl(func, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        result = pack(ret);
+        result = serialize(ret);
     }
 
     template<typename Function, std::size_t... I, typename... Args>
@@ -229,7 +229,7 @@ private:
     call_member(const Function& func, Self* self, const std::tuple<Args...>& tp, std::string& result)
     {
         auto ret = call_member_impl(func, self, std::make_index_sequence<sizeof...(Args)>{}, tp);
-        result = pack(ret);
+        result = serialize(ret);
     }
 
     template<typename Function, typename Self, std::size_t... I, typename... Args>
