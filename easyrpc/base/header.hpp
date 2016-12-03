@@ -7,7 +7,7 @@ namespace easyrpc
 {
 
 const int max_buffer_len = 8192;
-const int request_header_len = 12;
+const int request_header_len = 16;
 const int response_header_len = 4;
 
 enum class call_mode : unsigned int
@@ -16,11 +16,24 @@ enum class call_mode : unsigned int
     non_raw
 };
 
+enum class client_type : unsigned int
+{
+    rpc_client,
+    pub_client,
+    sub_client
+};
+
+struct client_flag
+{
+    call_mode mode;
+    client_type type;
+};
+
 struct request_header
 {
     unsigned int protocol_len;
     unsigned int body_len;
-    call_mode mode;
+    client_flag flag;
 };
 
 struct response_header

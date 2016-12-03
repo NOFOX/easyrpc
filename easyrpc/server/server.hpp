@@ -141,13 +141,12 @@ private:
 
     void accept()
     {
-        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, [this](const std::string& protocol, 
-                                                                                                        const std::string& body, 
-                                                                                                        const call_mode& mode, 
-                                                                                                        const std::shared_ptr<connection>& conn)
-        {
-            return router::instance().route(protocol, body, mode, conn); 
-        });
+        using std::placeholders::_1;
+        using std::placeholders::_2;
+        using std::placeholders::_3;
+        using std::placeholders::_4;
+        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, 
+                                                     std::bind(&server::route, this, _1, _2, _3, _4));
         acceptor_.async_accept(new_conn->socket(), [this, new_conn](boost::system::error_code ec)
         {
             if (!ec)
@@ -156,6 +155,12 @@ private:
             }
             accept();
         });
+    }
+
+    bool route(const std::string& protocol, const std::string& body, 
+               const client_flag& flag, const std::shared_ptr<connection>& conn)
+    {
+        return router::instance().route(protocol, body, flag, conn); 
     }
 
 private:

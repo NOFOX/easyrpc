@@ -21,7 +21,8 @@ class invoker_function
 public:
     using function_t = std::function<void(parser_util& parser, std::string& result)>;
     invoker_function() = default;
-    invoker_function(const function_t& func, std::size_t param_size) : func_(func), param_size_(param_size) {}
+    invoker_function(const function_t& func, std::size_t param_size) 
+        : func_(func), param_size_(param_size) {}
 
     void operator()(const std::string& body, const std::shared_ptr<connection>& conn)
     {
@@ -154,41 +155,49 @@ public:
         return false;
     }
 
-#if 0
-    template<typename T>
-    void set_sub_coming_callback(const std::function<void(const std::string&, T)>& func)
+    bool route(const std::string& protocol, const std::string& body, 
+               const client_flag& flag, const std::shared_ptr<connection>& conn)
     {
-
-    }
-#endif
-
-    bool route(const std::string& protocol, const std::string& body, const call_mode& mode, const std::shared_ptr<connection>& conn)
-    {
-        if (mode == call_mode::non_raw)
+        if (flag.type == client_type::rpc_client)
         {
-            auto iter = invoker_map_.find(protocol);
-            if (iter == invoker_map_.end())
+            if (flag.mode == call_mode::non_raw)
             {
+                auto iter = invoker_map_.find(protocol);
+                if (iter == invoker_map_.end())
+                {
+                    return false;
+                }
+                threadpool_.add_task(iter->second, body, conn);
+            }
+            else if (flag.mode == call_mode::raw)
+            {
+                auto iter = invoker_raw_map_.find(protocol);
+                if (iter == invoker_raw_map_.end())
+                {
+                    return false;
+                }
+                threadpool_.add_task(iter->second, body, conn);           
+            }
+            else
+            {
+                log_warn("Invaild call mode: {}", static_cast<unsigned int>(flag.mode));
                 return false;
             }
-
-            threadpool_.add_task(iter->second, body, conn);
         }
-        else if (mode == call_mode::raw)
+        else if (flag.type == client_type::pub_client)
         {
-            auto iter = invoker_raw_map_.find(protocol);
-            if (iter == invoker_raw_map_.end())
-            {
-                return false;
-            }
 
-            threadpool_.add_task(iter->second, body, conn);           
+        }
+        else if (flag.type == client_type::sub_client)
+        {
+
         }
         else
         {
-            log_warn("Invaild call mode: {}", static_cast<unsigned int>(mode));
+            log_warn("Invaild client type: {}", static_cast<unsigned int>(flag.type));
             return false;
         }
+
 
         return true;
     }

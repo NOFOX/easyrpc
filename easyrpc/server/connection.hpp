@@ -16,14 +16,13 @@ namespace easyrpc
 class connection : public std::enable_shared_from_this<connection>
 {
 public:
-    using router_callback = std::function<bool(const std::string&, const std::string&, const call_mode&, const std::shared_ptr<connection>&)>;
+    using router_callback = std::function<bool(const std::string&, const std::string&, 
+                                               const client_flag&, const std::shared_ptr<connection>&)>;
     connection() = default;
     connection(const connection&) = delete;
     connection& operator=(const connection&) = delete;
     connection(boost::asio::io_service& ios, std::size_t timeout_milli, const router_callback& func)
-        : socket_(ios), timer_(ios), 
-        timeout_milli_(timeout_milli),
-        route_(func) {}
+        : socket_(ios), timer_(ios), timeout_milli_(timeout_milli), route_(func) {} 
 
     ~connection()
     {
@@ -120,7 +119,7 @@ private:
 
             bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
                              std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
-                             req_head_.mode, self);
+                             req_head_.flag, self);
             if (!ok)
             {
                 log_warn("Router failed");

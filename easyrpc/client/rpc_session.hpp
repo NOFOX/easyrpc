@@ -55,24 +55,24 @@ public:
         stop_timer_thread();
     }
 
-    void call_one_way(const std::string& protocol, const call_mode& mode, const std::string& body)
+    void call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
         if (!is_connected_)
         {
             connect();
             is_connected_ = true;
         }
-        write(protocol, mode, body);
+        write(protocol, flag, body);
     }
 
-    std::vector<char> call_two_way(const std::string& protocol, const call_mode& mode, const std::string& body)
+    std::vector<char> call_two_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
         if (!is_connected_)
         {
             connect();
             is_connected_ = true;
         }
-        write(protocol, mode, body);
+        write(protocol, flag, body);
         return read();
     }
 
@@ -93,7 +93,7 @@ public:
     }
 
 private:
-    void write(const std::string& protocol, const call_mode& mode, const std::string& body)
+    void write(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
         unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
         unsigned int body_len = static_cast<unsigned int>(body.size());
@@ -102,7 +102,7 @@ private:
             throw std::runtime_error("Send data is too big");
         }
 
-        const auto& buffer = get_buffer(request_header{ protocol_len, body_len, mode }, protocol, body);
+        const auto& buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
         write_impl(buffer);
     }
 
