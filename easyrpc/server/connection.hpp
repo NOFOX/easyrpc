@@ -9,7 +9,6 @@
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
-#include "router.hpp"
 
 namespace easyrpc
 {
@@ -17,12 +16,14 @@ namespace easyrpc
 class connection : public std::enable_shared_from_this<connection>
 {
 public:
-    friend class router;
+    using router_callback = std::function<bool(const std::string&, const std::string&, const call_mode&, const std::shared_ptr<connection>&)>;
     connection() = default;
     connection(const connection&) = delete;
     connection& operator=(const connection&) = delete;
-    connection(boost::asio::io_service& ios, std::size_t timeout_milli = 0)
-        : socket_(ios), timer_(ios), timeout_milli_(timeout_milli) {}
+    connection(boost::asio::io_service& ios, std::size_t timeout_milli, const router_callback& func)
+        : socket_(ios), timer_(ios), 
+        timeout_milli_(timeout_milli),
+        route_(func) {}
 
     ~connection()
     {
@@ -117,9 +118,9 @@ private:
                 return;
             }
 
-            bool ok = router::instance().route(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
-                                               std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
-                                               req_head_.mode, self);
+            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
+                             std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
+                             req_head_.mode, self);
             if (!ok)
             {
                 log_warn("Router failed");
@@ -182,6 +183,7 @@ private:
     std::vector<char> protocol_and_body_;
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
+    router_callback route_;
 };
 
 }

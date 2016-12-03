@@ -2,10 +2,11 @@
 #define _SERVER_H
 
 #include <iostream>
+#include <unordered_map>
+#include <mutex>
+#include "base/string_util.hpp"
 #include "io_service_pool.hpp"
 #include "router.hpp"
-#include "connection.hpp"
-#include "base/string_util.hpp"
 
 namespace easyrpc
 {
@@ -140,12 +141,18 @@ private:
 
     void accept()
     {
-        auto conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_);
-        acceptor_.async_accept(conn->socket(), [this, conn](boost::system::error_code ec)
+        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, [this](const std::string& protocol, 
+                                                                                                        const std::string& body, 
+                                                                                                        const call_mode& mode, 
+                                                                                                        const std::shared_ptr<connection>& conn)
+        {
+            return router::instance().route(protocol, body, mode, conn); 
+        });
+        acceptor_.async_accept(new_conn->socket(), [this, new_conn](boost::system::error_code ec)
         {
             if (!ec)
             {
-                conn->start();
+                new_conn->start();
             }
             accept();
         });
@@ -158,6 +165,11 @@ private:
     unsigned short port_ = 50051;
     std::size_t timeout_milli_ = 0;
     std::size_t thread_num_ = 1;
+
+    using connection_ptr = std::shared_ptr<connection>;
+    using connection_weak_ptr = std::weak_ptr<connection>;
+    std::unordered_multimap<std::string, connection_weak_ptr> subscribers_map_;
+    std::mutex mutex_;
 };
 
 }

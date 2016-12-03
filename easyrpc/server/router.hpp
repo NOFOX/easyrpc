@@ -11,6 +11,7 @@
 #include "base/thread_pool.hpp"
 #include "base/logger.hpp"
 #include "parser_util.hpp"
+#include "connection.hpp"
 
 namespace easyrpc
 {
@@ -22,8 +23,7 @@ public:
     invoker_function() = default;
     invoker_function(const function_t& func, std::size_t param_size) : func_(func), param_size_(param_size) {}
 
-    template<typename T>
-    void operator()(const std::string& body, T conn)
+    void operator()(const std::string& body, const std::shared_ptr<connection>& conn)
     {
         try
         {
@@ -59,8 +59,7 @@ public:
     invoker_function_raw() = default;
     invoker_function_raw(const function_t& func) : func_(func) {}
 
-    template<typename T>
-    void operator()(const std::string& body, T conn)
+    void operator()(const std::string& body, const std::shared_ptr<connection>& conn)
     {
         try
         {
@@ -85,14 +84,6 @@ private:
 class router
 {
 public:
-    router() = default;
-    router(const router&) = delete;
-    router& operator=(const router&) = delete;
-    ~router()
-    {
-        stop();
-    }
-
     static router& instance()
     {
         static router r;
@@ -163,8 +154,15 @@ public:
         return false;
     }
 
+#if 0
     template<typename T>
-    bool route(const std::string& protocol, const std::string& body, const call_mode& mode, T conn)
+    void set_sub_coming_callback(const std::function<void(const std::string&, T)>& func)
+    {
+
+    }
+#endif
+
+    bool route(const std::string& protocol, const std::string& body, const call_mode& mode, const std::shared_ptr<connection>& conn)
     {
         if (mode == call_mode::non_raw)
         {
@@ -196,6 +194,14 @@ public:
     }
 
 private:
+    router() = default;
+    router(const router&) = delete;
+    router& operator=(const router&) = delete;
+    ~router()
+    {
+        stop();
+    }
+
     template<typename Function, typename... Args>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Args...)>::type>::value>::type
     call(const Function& func, const std::tuple<Args...>& tp, std::string&)
@@ -398,6 +404,7 @@ private:
     thread_pool threadpool_;
     std::unordered_map<std::string, invoker_function> invoker_map_;
     std::unordered_map<std::string, invoker_function_raw> invoker_raw_map_;
+    /* std::function<void(const std::string&, T)> sub_coming_func_; */
 };
 
 }
