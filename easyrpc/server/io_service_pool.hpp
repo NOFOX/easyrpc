@@ -26,8 +26,8 @@ public:
         
         for (std::size_t i = 0; i < pool_size; ++i)
         {
-            io_service_ptr ios = std::make_shared<boost::asio::io_service>();
-            work_ptr work = std::make_shared<boost::asio::io_service::work>(*ios);
+            auto ios = std::make_shared<boost::asio::io_service>();
+            auto work = std::make_shared<boost::asio::io_service::work>(*ios);
             ios_vec_.emplace_back(ios);
             work_vec_.emplace_back(work);
         }
@@ -37,7 +37,7 @@ public:
     {
         for (std::size_t i = 0; i < ios_vec_.size(); ++i)
         {
-            thread_ptr t = std::make_shared<std::thread>(boost::bind(&boost::asio::io_service::run, ios_vec_[i]));
+            auto t = std::make_shared<std::thread>(boost::bind(&boost::asio::io_service::run, ios_vec_[i]));
             thread_vec_.emplace_back(t);
         }
     }

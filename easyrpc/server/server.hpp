@@ -140,8 +140,7 @@ private:
 
     void accept()
     {
-        std::shared_ptr<connection> conn = 
-            std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_);
+        auto conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_);
         acceptor_.async_accept(conn->socket(), [this, conn](boost::system::error_code ec)
         {
             if (!ec)
