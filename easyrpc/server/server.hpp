@@ -17,7 +17,10 @@ public:
     server(const server&) = delete;
     server& operator=(const server&) = delete;
     server() : ios_pool_(std::thread::hardware_concurrency()), 
-    acceptor_(ios_pool_.get_io_service()) {}
+    acceptor_(ios_pool_.get_io_service()) 
+    {
+        set_pub_sub_callback();
+    }
 
     ~server()
     {
@@ -158,9 +161,27 @@ private:
     }
 
     bool route(const std::string& protocol, const std::string& body, 
-               const client_flag& flag, const std::shared_ptr<connection>& conn)
+               const client_flag& flag, const connection_ptr& conn)
     {
         return router::instance().route(protocol, body, flag, conn); 
+    }
+
+    void set_pub_sub_callback()
+    {
+        using placeholders::_1;
+        using placeholders::_2;
+        router::instance().publisher_coming_ = std::bind(&server::publisher_coming, this, _1, _2);
+        router::instance().subscriber_coming_ = std::bind(&server::subscriber_coming, this, _1, _2);
+    }
+
+    void publisher_coming(const std::string& topic_name, const std::string& body)
+    {
+        std::cout << "pub topic_name: " << topic_name << ", body: " << body << std::endl;
+    }
+
+    void subscriber_coming(const std::string& topic_name, const connection_ptr& conn)
+    {
+        std::cout << "sub topic_name: " << topic_name << std::endl;
     }
 
 private:
@@ -171,8 +192,6 @@ private:
     std::size_t timeout_milli_ = 0;
     std::size_t thread_num_ = 1;
 
-    using connection_ptr = std::shared_ptr<connection>;
-    using connection_weak_ptr = std::weak_ptr<connection>;
     std::unordered_multimap<std::string, connection_weak_ptr> subscribers_map_;
     std::mutex mutex_;
 };

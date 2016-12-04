@@ -156,7 +156,7 @@ public:
     }
 
     bool route(const std::string& protocol, const std::string& body, 
-               const client_flag& flag, const std::shared_ptr<connection>& conn)
+               const client_flag& flag, const connection_ptr& conn)
     {
         if (flag.type == client_type::rpc_client)
         {
@@ -186,18 +186,17 @@ public:
         }
         else if (flag.type == client_type::pub_client)
         {
-
+            threadpool_.add_task(pub_coming_helper_, protocol, body);
         }
         else if (flag.type == client_type::sub_client)
         {
-
+            threadpool_.add_task(sub_coming_helper_, protocol, conn);
         }
         else
         {
             log_warn("Invaild client type: {}", static_cast<unsigned int>(flag.type));
             return false;
         }
-
 
         return true;
     }
@@ -380,6 +379,22 @@ private:
         }
     }; 
 
+    struct pub_coming_helper
+    {
+        void operator()(const std::string& topic_name, const std::string& body)
+        {
+            router::instance().publisher_coming_(topic_name, body);
+        }
+    };
+
+    struct sub_coming_helper
+    {
+        void operator()(const std::string& topic_name, const connection_ptr& conn)
+        {
+            router::instance().subscriber_coming_(topic_name, conn);
+        }
+    };
+
 private:
     template<typename Function>
     void bind_non_member_func(const std::string& protocol, const Function& func)
@@ -409,11 +424,18 @@ private:
                                                 std::placeholders::_1, std::placeholders::_2) };
     }
 
+public:
+    using pub_comming_callback = std::function<void(const std::string&, const std::string&)>;
+    using sub_comming_callback = std::function<void(const std::string&, const connection_ptr&)>;
+    pub_comming_callback publisher_coming_ = nullptr;
+    sub_comming_callback subscriber_coming_ = nullptr;
+
 private:
     thread_pool threadpool_;
     std::unordered_map<std::string, invoker_function> invoker_map_;
     std::unordered_map<std::string, invoker_function_raw> invoker_raw_map_;
-    /* std::function<void(const std::string&, T)> sub_coming_func_; */
+    pub_coming_helper pub_coming_helper_;
+    sub_coming_helper sub_coming_helper_;
 };
 
 }

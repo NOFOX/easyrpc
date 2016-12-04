@@ -13,6 +13,10 @@
 namespace easyrpc
 {
 
+class connection;
+using connection_ptr = std::shared_ptr<connection>;
+using connection_weak_ptr = std::weak_ptr<connection>;
+
 class connection : public std::enable_shared_from_this<connection>
 {
 public:

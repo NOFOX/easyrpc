@@ -45,8 +45,7 @@ public:
         {
             timer_thread_ = std::make_unique<std::thread>([this]{ timer_ios_.run(); });
         }
-        connect();
-        is_connected_ = true;
+        try_connect();
     }
 
     void stop()
@@ -57,22 +56,13 @@ public:
 
     void call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
-        if (!is_connected_)
-        {
-            connect();
-            is_connected_ = true;
-        }
+        try_connect();
         write(protocol, flag, body);
     }
 
     std::vector<char> call_two_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
-        if (!is_connected_)
-        {
-            connect();
-            is_connected_ = true;
-        }
-        write(protocol, flag, body);
+        call_one_way(protocol, flag, body);
         return read();
     }
 
@@ -171,6 +161,15 @@ private:
         return body_;
     }
 
+    void try_connect()
+    {
+        if (!is_connected_)
+        {
+            connect();
+            is_connected_ = true;
+        }
+    }
+
     void start_timer()
     {
         if (timeout_milli_ == 0)
@@ -215,6 +214,72 @@ private:
             }
         }
     }
+#if 0
+    void read_head()
+    {
+        auto self(this->shared_from_this());
+        boost::asio::async_read(socket_, boost::asio::buffer(head_), 
+                                [this, self](boost::system::error_code ec, std::size_t)
+        {
+            if (!socket_.is_open())
+            {
+                log_warn("Socket is not open");
+                return;
+            }
+
+            if (ec)
+            {
+                log_warn(ec.message());
+                return;
+            }
+
+            if (check_head())
+            {
+                read_protocol_and_body();
+            }
+        });
+    }
+
+    bool check_head()
+    {
+        memcpy(&req_head_, head_, sizeof(head_));
+        unsigned int len = req_head_.protocol_len + req_head_.body_len;
+        return (len > 0 && len < max_buffer_len) ? true : false;
+    }
+
+    void read_protocol_and_body()
+    {
+        protocol_and_body_.clear();
+        protocol_and_body_.resize(req_head_.protocol_len + req_head_.body_len);
+        auto self(this->shared_from_this());
+        boost::asio::async_read(socket_, boost::asio::buffer(protocol_and_body_), 
+                                [this, self](boost::system::error_code ec, std::size_t)
+        {
+            read_head();
+
+            if (!socket_.is_open())
+            {
+                log_warn("Socket is not open");
+                return;
+            }
+
+            if (ec)
+            {
+                log_warn(ec.message());
+                return;
+            }
+
+            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
+                             std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
+                             req_head_.flag, self);
+            if (!ok)
+            {
+                log_warn("Router failed");
+                return;
+            }
+        });
+    }
+#endif
 
 private:
     boost::asio::io_service ios_;

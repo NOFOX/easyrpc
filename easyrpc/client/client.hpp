@@ -103,6 +103,44 @@ public:
         session_.call_one_way(topic_name, flag, body);
     }
 
+    template<typename Function>
+    void subscribe(const std::string& topic_name, const Function& func)
+    {
+        try
+        {
+            client_flag flag{ call_mode::non_raw, client_type::sub_client };
+            session_.call_one_way(topic_name, flag, "");
+        }
+        catch (std::exception& e)
+        {
+            throw std::runtime_error(e.what());
+        }
+    }
+
+    template<typename Function, typename Self>
+    void subscribe(const std::string& topic_name, const Function& func, Self* self)
+    {
+        try
+        {
+            client_flag flag{ call_mode::non_raw, client_type::sub_client };
+            session_.call_one_way(topic_name, flag, "");
+        }
+        catch (std::exception& e)
+        {
+            throw std::runtime_error(e.what());
+        }
+    }
+
+    template<typename Function>
+    void subscribe_raw(const std::string& topic_name, const Function& func)
+    {
+    }
+
+    template<typename Function, typename Self>
+    void subscribe_raw(const std::string& topic_name, const Function& func, Self* self)
+    {
+    }
+
 private:
     rpc_session session_;
 };

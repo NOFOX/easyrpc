@@ -15,7 +15,10 @@ TEST(EasyRpcTest, ClientCase)
     try
     {
         app.connect("localhost:50051").run();
-
+        
+        app.publish("weather", "good");
+        app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
+#if 0
         app.call(say_hello);
         std::string ret = app.call(echo, "Hello world");
         EXPECT_STREQ("Hello world", ret.c_str());
@@ -48,6 +51,8 @@ TEST(EasyRpcTest, ClientCase)
         EXPECT_STREQ(req2.name.c_str(), res2.name.c_str());
         EXPECT_EQ(20, res2.age);
         EXPECT_STREQ("han", res2.national.c_str()); 
+#endif
+
 #endif
     }
     catch (std::exception& e)
