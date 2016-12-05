@@ -1,6 +1,5 @@
 #include <iostream>
 #include <thread>
-#include <gtest/gtest.h>
 #include <easyrpc/easyrpc.hpp>
 #include "user_define_classes.hpp"
 
@@ -8,7 +7,7 @@ EASYRPC_RPC_PROTOCOL_DEFINE(say_hello, void());
 EASYRPC_RPC_PROTOCOL_DEFINE(echo, std::string(const std::string&));
 EASYRPC_RPC_PROTOCOL_DEFINE(query_person_info, std::vector<person_info_res>(const person_info_req&));
 
-TEST(EasyRpcTest, ClientCase)
+int main()
 {
     easyrpc::client app;
 
@@ -21,11 +20,10 @@ TEST(EasyRpcTest, ClientCase)
 #if 0
         app.call(say_hello);
         std::string ret = app.call(echo, "Hello world");
-        EXPECT_STREQ("Hello world", ret.c_str());
+        std::cout << ret << std::endl;
 
         person_info_req req { 12345678, "Jack" };
         auto vec = app.call(query_person_info, req);
-        EXPECT_EQ(2, static_cast<int>(vec.size()));
         for (auto& res : vec)
         {
             EXPECT_EQ(req.card_id, res.card_id);
@@ -58,13 +56,10 @@ TEST(EasyRpcTest, ClientCase)
     catch (std::exception& e)
     {
         easyrpc::log_warn(e.what());
-        FAIL();
+        return 0;
     }
+
+    return 0;
 }
 
-int main(int argc, char* argv[])
-{
-    testing::InitGoogleTest(&argc, argv); 
-    return RUN_ALL_TESTS();
-}
 
