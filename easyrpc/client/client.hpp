@@ -141,6 +141,11 @@ public:
     {
     }
 
+    void cancel_subscribe(const std::string& topic_name)
+    {
+
+    }
+
 private:
     rpc_session session_;
 };
