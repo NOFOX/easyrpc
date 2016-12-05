@@ -144,12 +144,12 @@ private:
 
     void accept()
     {
-        using std::placeholders::_1;
-        using std::placeholders::_2;
-        using std::placeholders::_3;
-        using std::placeholders::_4;
         auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, 
-                                                     std::bind(&server::route, this, _1, _2, _3, _4));
+                                                     [this](const std::string& protocol, const std::string& body,
+                                                            const client_flag& flag, const connection_ptr& conn)
+        {
+            return router::instance().route(protocol, body, flag, conn); 
+        });
         acceptor_.async_accept(new_conn->socket(), [this, new_conn](boost::system::error_code ec)
         {
             if (!ec)
@@ -158,12 +158,6 @@ private:
             }
             accept();
         });
-    }
-
-    bool route(const std::string& protocol, const std::string& body, 
-               const client_flag& flag, const connection_ptr& conn)
-    {
-        return router::instance().route(protocol, body, flag, conn); 
     }
 
     void set_pub_sub_callback()
@@ -181,7 +175,18 @@ private:
 
     void subscriber_coming(const std::string& topic_name, const connection_ptr& conn)
     {
-        std::cout << "sub topic_name: " << topic_name << std::endl;
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto range = subscribers_map_.equal_range(topic_name);
+        for (auto iter = range.first; iter != range.second; ++iter)
+        {
+            if (iter->second.lock() == conn)
+            {
+                std::cout << "has topic: " << topic_name << std::endl;
+                return;
+            }
+        }
+        std::cout << "insert topic: " << topic_name << std::endl;
+        subscribers_map_.emplace(topic_name, conn);
     }
 
 private:

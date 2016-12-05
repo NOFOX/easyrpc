@@ -17,6 +17,12 @@ int main()
         
         app.publish("weather", "good");
         app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
+        app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
 #if 0
         app.call(say_hello);
         std::string ret = app.call(echo, "Hello world");
