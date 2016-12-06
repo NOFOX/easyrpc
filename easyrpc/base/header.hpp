@@ -9,6 +9,8 @@ namespace easyrpc
 const int max_buffer_len = 8192;
 const int request_header_len = 16;
 const int response_header_len = 4;
+const std::string subscribe_topic_flag = "true";
+const std::string cancel_subscribe_topic_flag = "false";
 
 enum class call_mode : unsigned int
 {

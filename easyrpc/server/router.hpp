@@ -190,7 +190,7 @@ public:
         }
         else if (flag.type == client_type::sub_client)
         {
-            threadpool_.add_task(sub_coming_helper_, protocol, conn);
+            threadpool_.add_task(sub_coming_helper_, protocol, body, conn);
         }
         else
         {
@@ -389,9 +389,9 @@ private:
 
     struct sub_coming_helper
     {
-        void operator()(const std::string& topic_name, const connection_ptr& conn)
+        void operator()(const std::string& topic_name, const std::string& body, const connection_ptr& conn)
         {
-            router::instance().subscriber_coming_(topic_name, conn);
+            router::instance().subscriber_coming_(topic_name, body, conn);
         }
     };
 
@@ -426,7 +426,7 @@ private:
 
 public:
     using pub_comming_callback = std::function<void(const std::string&, const std::string&)>;
-    using sub_comming_callback = std::function<void(const std::string&, const connection_ptr&)>;
+    using sub_comming_callback = std::function<void(const std::string&, const std::string&, const connection_ptr&)>;
     pub_comming_callback publisher_coming_ = nullptr;
     sub_comming_callback subscriber_coming_ = nullptr;
 

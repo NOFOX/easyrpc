@@ -109,7 +109,7 @@ public:
         try
         {
             client_flag flag{ call_mode::non_raw, client_type::sub_client };
-            session_.call_one_way(topic_name, flag, "");
+            session_.call_one_way(topic_name, flag, subscribe_topic_flag);
         }
         catch (std::exception& e)
         {
@@ -123,7 +123,7 @@ public:
         try
         {
             client_flag flag{ call_mode::non_raw, client_type::sub_client };
-            session_.call_one_way(topic_name, flag, "");
+            session_.call_one_way(topic_name, flag, subscribe_topic_flag);
         }
         catch (std::exception& e)
         {
@@ -143,7 +143,15 @@ public:
 
     void cancel_subscribe(const std::string& topic_name)
     {
-
+        try
+        {
+            client_flag flag{ call_mode::non_raw, client_type::sub_client };
+            session_.call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
+        }
+        catch (std::exception& e)
+        {
+            throw std::runtime_error(e.what());
+        }
     }
 
 private:

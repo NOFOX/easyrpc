@@ -162,10 +162,10 @@ private:
 
     void set_pub_sub_callback()
     {
-        using placeholders::_1;
-        using placeholders::_2;
-        router::instance().publisher_coming_ = std::bind(&server::publisher_coming, this, _1, _2);
-        router::instance().subscriber_coming_ = std::bind(&server::subscriber_coming, this, _1, _2);
+        router::instance().publisher_coming_ = std::bind(&server::publisher_coming, 
+                                                         this, std::placeholders::_1, std::placeholders::_2);
+        router::instance().subscriber_coming_ = std::bind(&server::subscriber_coming, 
+                                                          this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
 
     void publisher_coming(const std::string& topic_name, const std::string& body)
@@ -173,7 +173,19 @@ private:
         std::cout << "pub topic_name: " << topic_name << ", body: " << body << std::endl;
     }
 
-    void subscriber_coming(const std::string& topic_name, const connection_ptr& conn)
+    void subscriber_coming(const std::string& topic_name, const std::string& body, const connection_ptr& conn)
+    {
+        if (body == subscribe_topic_flag)
+        {
+            subscribe_topic(topic_name, conn);
+        }
+        else if (body == cancel_subscribe_topic_flag)
+        {
+            cancel_subscribe_topic(topic_name, conn);
+        }
+    }
+
+    void subscribe_topic(const std::string& topic_name, const connection_ptr& conn)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto range = subscribers_map_.equal_range(topic_name);
@@ -187,6 +199,27 @@ private:
         }
         std::cout << "insert topic: " << topic_name << std::endl;
         subscribers_map_.emplace(topic_name, conn);
+    }
+
+    void cancel_subscribe_topic(const std::string& topic_name, const connection_ptr& conn)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto iter = subscribers_map_.find(topic_name);
+        if (iter != subscribers_map_.end())
+        {
+            auto range = subscribers_map_.equal_range(iter->first);
+            while (range.first != range.second)
+            {
+                if (range.first->second.lock() == conn)
+                {
+                    range.first = subscribers_map_.erase(range.first);
+                }
+                else
+                {
+                    ++range.first;
+                }
+            }
+        }
     }
 
 private:
