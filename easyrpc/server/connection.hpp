@@ -22,11 +22,16 @@ class connection : public std::enable_shared_from_this<connection>
 public:
     using router_callback = std::function<bool(const std::string&, const std::string&, 
                                                const client_flag&, const std::shared_ptr<connection>&)>;
+    using remove_all_topic_callback = std::function<void(const connection_ptr&)>;
     connection() = default;
     connection(const connection&) = delete;
     connection& operator=(const connection&) = delete;
-    connection(boost::asio::io_service& ios, std::size_t timeout_milli, const router_callback& func)
-        : socket_(ios), timer_(ios), timeout_milli_(timeout_milli), route_(func) {} 
+    connection(boost::asio::io_service& ios, 
+               std::size_t timeout_milli, const router_callback& route_func, 
+               const remove_all_topic_callback& remove_all_topic_func)
+        : socket_(ios), timer_(ios), 
+        timeout_milli_(timeout_milli), route_(route_func), 
+        remove_all_topic_(remove_all_topic_func) {} 
 
     ~connection()
     {
@@ -49,6 +54,7 @@ public:
         unsigned int body_len = static_cast<unsigned int>(body.size());
         if (body_len > max_buffer_len)
         {
+            try_remove_all_topic();
             throw std::runtime_error("Send data is too big");
         }
 
@@ -73,6 +79,7 @@ private:
         boost::asio::async_read(socket_, boost::asio::buffer(head_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
+            auto guard = make_guard([this, self]{ try_remove_all_topic(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -88,6 +95,7 @@ private:
             if (check_head())
             {
                 read_protocol_and_body();
+                guard.dismiss();
             }
         });
     }
@@ -108,7 +116,7 @@ private:
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
             read_head();
-
+            auto guard = make_guard([this, self]{ try_remove_all_topic(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -121,6 +129,7 @@ private:
                 return;
             }
 
+            check_call_mode(req_head_.flag.c_mode);
             bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
                              std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
                              req_head_.flag, self);
@@ -129,6 +138,7 @@ private:
                 log_warn("Router failed");
                 return;
             }
+            guard.dismiss();
         });
     }
 
@@ -175,7 +185,24 @@ private:
         boost::asio::write(socket_, buffer, ec);
         if (ec)
         {
+            try_remove_all_topic();
             throw std::runtime_error(ec.message());
+        }
+    }
+
+    void check_call_mode(const call_mode& c_mode)
+    {
+        if (c_mode == call_mode::sub_mode)
+        {
+            is_sub_mode_once = true;
+        }
+    }
+
+    void try_remove_all_topic()
+    {
+        if (is_sub_mode_once)
+        {
+            remove_all_topic_(this->shared_from_this());
         }
     }
 
@@ -187,6 +214,8 @@ private:
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
     router_callback route_;
+    remove_all_topic_callback remove_all_topic_;
+    bool is_sub_mode_once = false;
 };
 
 }

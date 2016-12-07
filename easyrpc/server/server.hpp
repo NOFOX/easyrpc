@@ -144,12 +144,11 @@ private:
 
     void accept()
     {
-        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, 
-                                                     [this](const std::string& protocol, const std::string& body,
-                                                            const client_flag& flag, const connection_ptr& conn)
-        {
-            return router::instance().route(protocol, body, flag, conn); 
-        });
+        auto route_func = std::bind(&server::route, this, 
+                                    std::placeholders::_1, std::placeholders::_2,
+                                    std::placeholders::_3, std::placeholders::_4);
+        auto remove_all_topic_func = std::bind(&server::remove_all_topic, this, std::placeholders::_1);
+        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, route_func, remove_all_topic_func);
         acceptor_.async_accept(new_conn->socket(), [this, new_conn](boost::system::error_code ec)
         {
             if (!ec)
@@ -168,6 +167,12 @@ private:
                                                           this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
 
+    bool route(const std::string& protocol, const std::string& body,
+               const client_flag& flag, const connection_ptr& conn)
+    {
+        return router::instance().route(protocol, body, flag, conn); 
+    }
+
     void publisher_coming(const std::string& topic_name, const std::string& body)
     {
         std::cout << "pub topic_name: " << topic_name << ", body: " << body << std::endl;
@@ -177,47 +182,65 @@ private:
     {
         if (body == subscribe_topic_flag)
         {
-            subscribe_topic(topic_name, conn);
+            add_topic(topic_name, conn);
         }
         else if (body == cancel_subscribe_topic_flag)
         {
-            cancel_subscribe_topic(topic_name, conn);
+            remove_topic(topic_name, conn);
         }
     }
 
-    void subscribe_topic(const std::string& topic_name, const connection_ptr& conn)
+    void add_topic(const std::string& topic_name, const connection_ptr& conn)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto range = subscribers_map_.equal_range(topic_name);
+        auto range = topic_map_.equal_range(topic_name);
         for (auto iter = range.first; iter != range.second; ++iter)
         {
             if (iter->second.lock() == conn)
             {
-                std::cout << "has topic: " << topic_name << std::endl;
+                /* std::cout << "has topic: " << topic_name << std::endl; */
                 return;
             }
         }
-        std::cout << "insert topic: " << topic_name << std::endl;
-        subscribers_map_.emplace(topic_name, conn);
+        /* std::cout << "insert topic: " << topic_name << std::endl; */
+        topic_map_.emplace(topic_name, conn);
     }
 
-    void cancel_subscribe_topic(const std::string& topic_name, const connection_ptr& conn)
+    void remove_topic(const std::string& topic_name, const connection_ptr& conn)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto iter = subscribers_map_.find(topic_name);
-        if (iter != subscribers_map_.end())
+        auto iter = topic_map_.find(topic_name);
+        if (iter != topic_map_.end())
         {
-            auto range = subscribers_map_.equal_range(iter->first);
+            auto range = topic_map_.equal_range(iter->first);
             while (range.first != range.second)
             {
                 if (range.first->second.lock() == conn)
                 {
-                    range.first = subscribers_map_.erase(range.first);
+                    range.first = topic_map_.erase(range.first);
                 }
                 else
                 {
                     ++range.first;
                 }
+            }
+        }
+    }
+
+    void remove_all_topic(const connection_ptr& conn)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto begin = topic_map_.begin();
+        while (begin != topic_map_.end())
+        {
+            if (begin->second.lock() == conn)
+            {
+                std::cout << "remove topic: " << begin->first << std::endl;
+                begin = topic_map_.erase(begin);
+            }
+            else
+            {
+                ++begin;
             }
         }
     }
@@ -230,7 +253,7 @@ private:
     std::size_t timeout_milli_ = 0;
     std::size_t thread_num_ = 1;
 
-    std::unordered_multimap<std::string, connection_weak_ptr> subscribers_map_;
+    std::unordered_multimap<std::string, connection_weak_ptr> topic_map_;
     std::mutex mutex_;
 };
 

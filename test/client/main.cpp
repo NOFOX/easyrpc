@@ -23,7 +23,7 @@ int main()
         app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
         app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
         app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
-        app.cancel_subscribe("news");
+        /* app.cancel_subscribe("news"); */
 #if 0
         app.call(say_hello);
         std::string ret = app.call(echo, "Hello world");

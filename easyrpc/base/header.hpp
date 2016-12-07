@@ -12,23 +12,23 @@ const int response_header_len = 4;
 const std::string subscribe_topic_flag = "true";
 const std::string cancel_subscribe_topic_flag = "false";
 
-enum class call_mode : unsigned int
+enum class serialize_mode : unsigned int
 {
-    raw,
-    non_raw
+    serialize,
+    non_serialize
 };
 
-enum class client_type : unsigned int
+enum class call_mode : unsigned int
 {
-    rpc_client,
-    pub_client,
-    sub_client
+    rpc_mode,
+    pub_mode,
+    sub_mode
 };
 
 struct client_flag
 {
-    call_mode mode;
-    client_type type;
+    serialize_mode s_mode;
+    call_mode c_mode;
 };
 
 struct request_header
