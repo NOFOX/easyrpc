@@ -77,7 +77,7 @@ public:
 
     void run()
     {
-        router::instance().multithreaded(thread_num_);
+        router::singleton::get()->multithreaded(thread_num_);
         listen();
         accept();
         ios_pool_.run();
@@ -91,45 +91,45 @@ public:
     template<typename Function>
     void bind(const std::string& protocol, const Function& func)
     {
-        router::instance().bind(protocol, func);
+        router::singleton::get()->bind(protocol, func);
     }
 
     template<typename Function, typename Self>
     void bind(const std::string& protocol, const Function& func, Self* self)
     {
-        router::instance().bind(protocol, func, self); 
+        router::singleton::get()->bind(protocol, func, self); 
     }
 
     void unbind(const std::string& protocol)
     {
-        router::instance().unbind(protocol);
+        router::singleton::get()->unbind(protocol);
     }
 
     bool is_bind(const std::string& protocol)
     {
-        return router::instance().is_bind(protocol);
+        return router::singleton::get()->is_bind(protocol);
     }
 
     template<typename Function>
     void bind_raw(const std::string& protocol, const Function& func)
     {
-        router::instance().bind_raw(protocol, func);
+        router::singleton::get()->bind_raw(protocol, func);
     }
 
     template<typename Function, typename Self>
     void bind_raw(const std::string& protocol, const Function& func, Self* self)
     {
-        router::instance().bind_raw(protocol, func, self); 
+        router::singleton::get()->bind_raw(protocol, func, self); 
     }
 
     void unbind_raw(const std::string& protocol)
     {
-        router::instance().unbind_raw(protocol);
+        router::singleton::get()->unbind_raw(protocol);
     }
 
     bool is_bind_raw(const std::string& protocol)
     {
-        return router::instance().is_bind_raw(protocol);
+        return router::singleton::get()->is_bind_raw(protocol);
     }
 
 private:
@@ -161,16 +161,16 @@ private:
 
     void set_pub_sub_callback()
     {
-        router::instance().publisher_coming_ = std::bind(&server::publisher_coming, 
-                                                         this, std::placeholders::_1, std::placeholders::_2);
-        router::instance().subscriber_coming_ = std::bind(&server::subscriber_coming, 
-                                                          this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        router::singleton::get()->publisher_coming_ = std::bind(&server::publisher_coming, 
+                                                                this, std::placeholders::_1, std::placeholders::_2);
+        router::singleton::get()->subscriber_coming_ = std::bind(&server::subscriber_coming, 
+                                                                 this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
 
     bool route(const std::string& protocol, const std::string& body,
                const client_flag& flag, const connection_ptr& conn)
     {
-        return router::instance().route(protocol, body, flag, conn); 
+        return router::singleton::get()->route(protocol, body, flag, conn); 
     }
 
     void publisher_coming(const std::string& topic_name, const std::string& body)

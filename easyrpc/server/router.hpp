@@ -10,6 +10,7 @@
 #include "base/function_traits.hpp"
 #include "base/thread_pool.hpp"
 #include "base/logger.hpp"
+#include "base/singleton.hpp"
 #include "parser_util.hpp"
 #include "connection.hpp"
 
@@ -84,12 +85,9 @@ private:
 
 class router
 {
+    DEFINE_SINGLETON(router);
 public:
-    static router& instance()
-    {
-        static router r;
-        return r;
-    }
+    router() = default;
 
     void multithreaded(std::size_t num)
     {
@@ -202,14 +200,6 @@ public:
     }
 
 private:
-    router() = default;
-    router(const router&) = delete;
-    router& operator=(const router&) = delete;
-    ~router()
-    {
-        stop();
-    }
-
     template<typename Function, typename... Args>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Args...)>::type>::value>::type
     call(const Function& func, const std::tuple<Args...>& tp, std::string&)
@@ -383,7 +373,7 @@ private:
     {
         void operator()(const std::string& topic_name, const std::string& body)
         {
-            router::instance().publisher_coming_(topic_name, body);
+            router::singleton::get()->publisher_coming_(topic_name, body);
         }
     };
 
@@ -391,7 +381,7 @@ private:
     {
         void operator()(const std::string& topic_name, const std::string& body, const connection_ptr& conn)
         {
-            router::instance().subscriber_coming_(topic_name, body, conn);
+            router::singleton::get()->subscriber_coming_(topic_name, body, conn);
         }
     };
 
