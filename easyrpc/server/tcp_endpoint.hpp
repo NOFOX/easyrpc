@@ -38,17 +38,6 @@ public:
         });
     }
 
-    bool route(const std::string& protocol, const std::string& body,
-               const client_flag& flag, const connection_ptr& conn)
-    {
-        return route_(protocol, body, flag, conn); 
-    }
-
-    void remove_all_topic(const connection_ptr& conn)
-    {
-        remove_all_topic_(conn);
-    }
-
 private:
     boost::asio::ip::tcp::acceptor acceptor_;
     router_callback route_;
