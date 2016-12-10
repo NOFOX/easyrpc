@@ -156,9 +156,9 @@ public:
     bool route(const std::string& protocol, const std::string& body, 
                const client_flag& flag, const connection_ptr& conn)
     {
-        if (flag.c_mode == call_mode::rpc_mode)
+        if (flag.type == client_type::rpc_client)
         {
-            if (flag.s_mode == serialize_mode::serialize)
+            if (flag.mode == serialize_mode::serialize)
             {
                 auto iter = invoker_map_.find(protocol);
                 if (iter == invoker_map_.end())
@@ -167,7 +167,7 @@ public:
                 }
                 threadpool_.add_task(iter->second, body, conn);
             }
-            else if (flag.s_mode == serialize_mode::non_serialize)
+            else if (flag.mode == serialize_mode::non_serialize)
             {
                 auto iter = invoker_raw_map_.find(protocol);
                 if (iter == invoker_raw_map_.end())
@@ -178,21 +178,21 @@ public:
             }
             else
             {
-                log_warn("Invaild serialize mode: {}", static_cast<unsigned int>(flag.s_mode));
+                log_warn("Invaild serialize mode: {}", static_cast<unsigned int>(flag.mode));
                 return false;
             }
         }
-        else if (flag.c_mode == call_mode::pub_mode)
+        else if (flag.type == client_type::pub_client)
         {
             threadpool_.add_task(pub_coming_helper_, protocol, body);
         }
-        else if (flag.c_mode == call_mode::sub_mode)
+        else if (flag.type == client_type::sub_client)
         {
             threadpool_.add_task(sub_coming_helper_, protocol, body, conn);
         }
         else
         {
-            log_warn("Invaild call type: {}", static_cast<unsigned int>(flag.c_mode));
+            log_warn("Invaild client type: {}", static_cast<unsigned int>(flag.type));
             return false;
         }
 

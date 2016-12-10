@@ -18,17 +18,17 @@ enum class serialize_mode : unsigned int
     non_serialize
 };
 
-enum class call_mode : unsigned int
+enum class client_type : unsigned int
 {
-    rpc_mode,
-    pub_mode,
-    sub_mode
+    rpc_client,
+    pub_client,
+    sub_client
 };
 
 struct client_flag
 {
-    serialize_mode s_mode;
-    call_mode c_mode;
+    serialize_mode mode;
+    client_type type;
 };
 
 struct request_header

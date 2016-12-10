@@ -130,7 +130,6 @@ private:
                 return;
             }
 
-            check_call_mode(req_head_.flag.c_mode);
             bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
                              std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
                              req_head_.flag, self);
@@ -191,17 +190,9 @@ private:
         }
     }
 
-    void check_call_mode(const call_mode& c_mode)
-    {
-        if (c_mode == call_mode::sub_mode)
-        {
-            is_sub_mode_once = true;
-        }
-    }
-
     void try_remove_all_topic()
     {
-        if (is_sub_mode_once)
+        if (req_head_.flag.type == client_type::sub_client)
         {
             remove_all_topic_(this->shared_from_this());
         }
@@ -216,7 +207,6 @@ private:
     std::size_t timeout_milli_ = 0;
     router_callback route_;
     remove_all_topic_callback remove_all_topic_;
-    bool is_sub_mode_once = false;
 };
 
 }

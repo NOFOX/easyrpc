@@ -1,5 +1,5 @@
-#ifndef _RPC_SESSION_H
-#define _RPC_SESSION_H
+#ifndef _CLIENT_BASE_H
+#define _CLIENT_BASE_H
 
 #include <string>
 #include <vector>
@@ -13,29 +13,28 @@
 namespace easyrpc
 {
 
-class rpc_session
+class client_base
 {
 public:
-    rpc_session(const rpc_session&) = delete;
-    rpc_session& operator=(const rpc_session&) = delete;
-    rpc_session() : work_(ios_), socket_(ios_), 
+    client_base() : work_(ios_), socket_(ios_), 
     timer_work_(timer_ios_), timer_(timer_ios_) {}
-
-    ~rpc_session()
+    virtual ~client_base()
     {
         stop();
     }
 
-    void connect(const std::string& ip, unsigned short port)
+    client_base& connect(const endpoint& ep)
     {
         boost::asio::ip::tcp::resolver resolver(ios_);
-        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), ip, std::to_string(port));
+        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), ep.ip, std::to_string(ep.port));
         endpoint_iter_ = resolver.resolve(query);
+        return *this;
     }
 
-    void timeout(std::size_t timeout_milli)
+    client_base& timeout(std::size_t timeout_milli)
     {
         timeout_milli_ = timeout_milli;
+        return *this;
     }
 
     void run()
@@ -280,6 +279,9 @@ private:
         });
     }
 #endif
+
+protected:
+    client_type type_;
 
 private:
     boost::asio::io_service ios_;
