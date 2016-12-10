@@ -15,7 +15,7 @@ int main()
     {
         /* app.connect({ "127.0.0.1", 50051 }).run(); */
         app.connect({ "127.0.0.1", 50052 }).run();
-        
+#if 1
         app.publish("weather", "good");
         app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
         app.subscribe("news", []{ std::cout << "Hello" << std::endl; });
@@ -25,6 +25,8 @@ int main()
         app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
         app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
         /* app.cancel_subscribe("news"); */
+#endif
+        
 #if 0
         app.call(say_hello);
         std::string ret = app.call(echo, "Hello world");
@@ -34,10 +36,7 @@ int main()
         auto vec = app.call(query_person_info, req);
         for (auto& res : vec)
         {
-            EXPECT_EQ(req.card_id, res.card_id);
-            EXPECT_STREQ(req.name.c_str(), res.name.c_str());
-            EXPECT_EQ(20, res.age);
-            EXPECT_STREQ("han", res.national.c_str());
+            std::cout << res.card_id << ", " << res.name << ", " << res.age << ", " << res.national << std::endl;
         }
 
         app.call_raw<easyrpc::one_way>("say_hi", "Hi");
@@ -53,10 +52,7 @@ int main()
         DeSerializer dr;
         dr.Parse(str);
         dr.Deserialize(res2);
-        EXPECT_EQ(req2.card_id, res2.card_id);
-        EXPECT_STREQ(req2.name.c_str(), res2.name.c_str());
-        EXPECT_EQ(20, res2.age);
-        EXPECT_STREQ("han", res2.national.c_str()); 
+        std::cout << res2.card_id << ", " << res2.name << ", " << res2.age << ", " << res2.national << std::endl;
 #endif
 
 #endif
