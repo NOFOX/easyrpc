@@ -17,12 +17,13 @@ class connection;
 using connection_ptr = std::shared_ptr<connection>;
 using connection_weak_ptr = std::weak_ptr<connection>;
 
+using router_callback = std::function<bool(const std::string&, const std::string&, 
+                                           const client_flag&, const std::shared_ptr<connection>&)>;
+using remove_all_topic_callback = std::function<void(const connection_ptr&)>;
+
 class connection : public std::enable_shared_from_this<connection>
 {
 public:
-    using router_callback = std::function<bool(const std::string&, const std::string&, 
-                                               const client_flag&, const std::shared_ptr<connection>&)>;
-    using remove_all_topic_callback = std::function<void(const connection_ptr&)>;
     connection() = default;
     connection(const connection&) = delete;
     connection& operator=(const connection&) = delete;

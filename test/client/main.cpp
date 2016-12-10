@@ -13,7 +13,8 @@ int main()
 
     try
     {
-        app.connect("localhost:50051").run();
+        /* app.connect({ "127.0.0.1", 50051 }).run(); */
+        app.connect({ "127.0.0.1", 50052 }).run();
         
         app.publish("weather", "good");
         app.subscribe("news", []{ std::cout << "Hello" << std::endl; });

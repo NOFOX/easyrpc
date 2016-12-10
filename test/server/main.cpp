@@ -67,7 +67,12 @@ int main()
 #ifdef ENABLE_JSON
         app.bind_raw("call_person", &call_person);
 #endif
-        app.listen(50051).multithreaded(10).run();
+        std::vector<easyrpc::endpoint> ep;
+        /* ep.emplace_back({ "127.0.0.1", 50051 }); */
+        /* ep.emplace_back({ "127.0.0.1", 50052 }); */
+        ep.emplace_back(easyrpc::endpoint{ "127.0.0.1", 50051 });
+        ep.emplace_back(easyrpc::endpoint{ "127.0.0.1", 50052 });
+        app.listen(ep).multithreaded(10).run();
     }
     catch (std::exception& e)
     {

@@ -1,7 +1,6 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#include "base/string_util.hpp"
 #include "protocol.hpp"
 #include "rpc_session.hpp"
 
@@ -19,24 +18,9 @@ public:
         stop();
     }
 
-    client& connect(const std::string& address)
+    client& connect(const endpoint& ep)
     {
-        std::vector<std::string> token = string_util::split(address, ":");
-        if (token.size() != 2)
-        {
-            throw std::invalid_argument("Address format error");
-        }
-        return connect(token[0], token[1]);
-    }
-
-    client& connect(const std::string& ip, unsigned short port)
-    {
-        return connect(ip, std::to_string(port));
-    }
-
-    client& connect(const std::string& ip, const std::string& port)
-    {
-        session_.connect(ip, port);
+        session_.connect(ep.ip, ep.port);
         return *this;
     }
 

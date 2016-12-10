@@ -6,19 +6,18 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include "base/singleton.hpp"
 
 namespace easyrpc
 {
 
 class io_service_pool
 {
+    DEFINE_SINGLETON(io_service_pool);
 public:
-    io_service_pool() = default;
-    io_service_pool(io_service_pool&) = delete;
-    io_service_pool& operator=(const io_service_pool&) = delete;
-
-    explicit io_service_pool(std::size_t pool_size)
+    io_service_pool()
     {
+        const std::size_t pool_size = std::thread::hardware_concurrency();
         if (pool_size == 0)
         {
             throw std::runtime_error("io server pool size is 0");

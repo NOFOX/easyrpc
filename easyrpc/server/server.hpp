@@ -2,11 +2,11 @@
 #define _SERVER_H
 
 #include <iostream>
+#include <vector>
 #include <unordered_map>
 #include <mutex>
-#include "base/string_util.hpp"
-#include "io_service_pool.hpp"
 #include "router.hpp"
+#include "tcp_endpoint.hpp"
 
 namespace easyrpc
 {
@@ -16,8 +16,7 @@ class server
 public:
     server(const server&) = delete;
     server& operator=(const server&) = delete;
-    server() : ios_pool_(std::thread::hardware_concurrency()), 
-    acceptor_(ios_pool_.get_io_service()) 
+    server()
     {
         set_pub_sub_callback();
     }
@@ -27,39 +26,15 @@ public:
         stop();
     }
 
-    server& listen(const std::string& address)
+    server& listen(const endpoint& ep)
     {
-        if (string_util::contains(address, ":"))
-        {
-            std::vector<std::string> token = string_util::split(address, ":");
-            if (token.size() != 2)
-            {
-                throw std::invalid_argument("Address format error");
-            }
-            if (string_util::equals_ignore_case(token[0], "localhost"))
-            {
-                return listen("127.0.0.1", token[1]);
-            }
-            return listen(token[0], token[1]);
-        }
-        // is port
-        return listen("0.0.0.0", address);    
+        endpoint_vec_.emplace_back(ep);
+        return *this;
     }
 
-    server& listen(unsigned short port)
+    server& listen(const std::vector<endpoint>& ep_vec)
     {
-        return listen("0.0.0.0", port);
-    }
-
-    server& listen(const std::string& ip, const std::string& port)
-    {
-        return listen(ip, static_cast<unsigned short>(std::stoi(port)));
-    }
-
-    server& listen(const std::string& ip, unsigned short port)
-    {
-        ip_ = ip;
-        port_ = port;
+        endpoint_vec_ = ep_vec;
         return *this;
     }
 
@@ -80,12 +55,12 @@ public:
         router::singleton::get()->multithreaded(thread_num_);
         listen();
         accept();
-        ios_pool_.run();
+        io_service_pool::singleton::get()->run();
     }
 
     void stop()
     {
-        ios_pool_.stop();
+        io_service_pool::singleton::get()->stop();
     }
 
     template<typename Function>
@@ -135,28 +110,24 @@ public:
 private:
     void listen()
     {
-        boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address_v4::from_string(ip_), port_);
-        acceptor_.open(ep.protocol());
-        acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-        acceptor_.bind(ep);
-        acceptor_.listen();
-    }
-
-    void accept()
-    {
         auto route_func = std::bind(&server::route, this, 
                                     std::placeholders::_1, std::placeholders::_2,
                                     std::placeholders::_3, std::placeholders::_4);
         auto remove_all_topic_func = std::bind(&server::remove_all_topic, this, std::placeholders::_1);
-        auto new_conn = std::make_shared<connection>(ios_pool_.get_io_service(), timeout_milli_, route_func, remove_all_topic_func);
-        acceptor_.async_accept(new_conn->socket(), [this, new_conn](boost::system::error_code ec)
+        for (auto& ep : endpoint_vec_)
         {
-            if (!ec)
-            {
-                new_conn->start();
-            }
-            accept();
-        });
+            auto endpoint = std::make_shared<tcp_endpoint>(route_func, remove_all_topic_func);
+            endpoint->listen(ep.ip, ep.port);
+            tcp_endpoint_vec_.emplace_back(endpoint);
+        }
+    }
+
+    void accept()
+    {
+        for (auto& endpoint : tcp_endpoint_vec_)
+        {
+            endpoint->accept();
+        }
     }
 
     void set_pub_sub_callback()
@@ -246,13 +217,11 @@ private:
     }
 
 private:
-    io_service_pool ios_pool_;
-    boost::asio::ip::tcp::acceptor acceptor_;
-    std::string ip_ = "0.0.0.0";
-    unsigned short port_ = 50051;
     std::size_t timeout_milli_ = 0;
     std::size_t thread_num_ = 1;
 
+    std::vector<endpoint> endpoint_vec_;
+    std::vector<std::shared_ptr<tcp_endpoint>> tcp_endpoint_vec_;
     std::unordered_multimap<std::string, connection_weak_ptr> topic_map_;
     std::mutex mutex_;
 };

@@ -43,6 +43,12 @@ struct response_header
     unsigned int body_len;
 };
 
+struct endpoint
+{
+    std::string ip;
+    unsigned short port;
+};
+
 using one_way = void;
 using two_way = std::string;
 

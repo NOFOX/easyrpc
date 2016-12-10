@@ -26,10 +26,10 @@ public:
         stop();
     }
 
-    void connect(const std::string& ip, const std::string& port)
+    void connect(const std::string& ip, unsigned short port)
     {
         boost::asio::ip::tcp::resolver resolver(ios_);
-        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), ip, port);
+        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), ip, std::to_string(port));
         endpoint_iter_ = resolver.resolve(query);
     }
 
