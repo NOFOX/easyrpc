@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
+#include "io_service_pool.hpp"
 #include "router.hpp"
 #include "tcp_endpoint.hpp"
 
