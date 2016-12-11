@@ -9,6 +9,7 @@
 #include "base/header.hpp"
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
+#include "base/logger.hpp"
 
 namespace easyrpc
 {
@@ -63,6 +64,11 @@ public:
     {
         call_one_way(protocol, flag, body);
         return read();
+    }
+
+    void do_read()
+    {
+        async_read_head();
     }
 
     void connect()
@@ -129,7 +135,7 @@ private:
     void read_head()
     {
         boost::system::error_code ec;
-        boost::asio::read(socket_, boost::asio::buffer(head_), ec);
+        boost::asio::read(socket_, boost::asio::buffer(res_head_buf_), ec);
         if (ec)
         {
             is_connected_ = false;
@@ -139,7 +145,7 @@ private:
 
     void check_head()
     {
-        memcpy(&res_head_, head_, sizeof(head_));
+        memcpy(&res_head_, res_head_buf_, sizeof(res_head_buf_));
         if (res_head_.body_len > max_buffer_len)
         {
             throw std::runtime_error("Body len is too big");
@@ -213,12 +219,11 @@ private:
             }
         }
     }
-#if 0
-    void read_head()
+
+    void async_read_head()
     {
-        auto self(this->shared_from_this());
-        boost::asio::async_read(socket_, boost::asio::buffer(head_), 
-                                [this, self](boost::system::error_code ec, std::size_t)
+        boost::asio::async_read(socket_, boost::asio::buffer(push_head_buf_), 
+                                [this](boost::system::error_code ec, std::size_t)
         {
             if (!socket_.is_open())
             {
@@ -232,29 +237,28 @@ private:
                 return;
             }
 
-            if (check_head())
+            if (async_check_head())
             {
-                read_protocol_and_body();
+                async_read_protocol_and_body();
             }
         });
     }
 
-    bool check_head()
+    bool async_check_head()
     {
-        memcpy(&req_head_, head_, sizeof(head_));
-        unsigned int len = req_head_.protocol_len + req_head_.body_len;
+        memcpy(&push_head_, push_head_buf_, sizeof(push_head_buf_));
+        unsigned int len = push_head_.protocol_len + push_head_.body_len;
         return (len > 0 && len < max_buffer_len) ? true : false;
     }
 
-    void read_protocol_and_body()
+    void async_read_protocol_and_body()
     {
         protocol_and_body_.clear();
-        protocol_and_body_.resize(req_head_.protocol_len + req_head_.body_len);
-        auto self(this->shared_from_this());
+        protocol_and_body_.resize(push_head_.protocol_len + push_head_.body_len);
         boost::asio::async_read(socket_, boost::asio::buffer(protocol_and_body_), 
-                                [this, self](boost::system::error_code ec, std::size_t)
+                                [this](boost::system::error_code ec, std::size_t)
         {
-            read_head();
+            async_read_head();
 
             if (!socket_.is_open())
             {
@@ -268,9 +272,8 @@ private:
                 return;
             }
 
-            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
-                             std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
-                             req_head_.flag, self);
+            bool ok = route(std::string(&protocol_and_body_[0], push_head_.protocol_len), 
+                             std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len));
             if (!ok)
             {
                 log_warn("Router failed");
@@ -278,7 +281,13 @@ private:
             }
         });
     }
-#endif
+
+    bool route(const std::string& protocol, const std::string& body)
+    {
+        std::cout << "protocol: " << protocol << std::endl;
+        std::cout << "body: " << body << std::endl;
+        return true;
+    }
 
 protected:
     client_type type_;
@@ -289,9 +298,12 @@ private:
     boost::asio::ip::tcp::socket socket_;
     boost::asio::ip::tcp::resolver::iterator endpoint_iter_;
     std::unique_ptr<std::thread> thread_;
-    char head_[response_header_len];
+    char res_head_buf_[response_header_len];
     response_header res_head_;
     std::vector<char> body_;
+    char push_head_buf_[push_header_len];
+    push_header push_head_;
+    std::vector<char> protocol_and_body_;
     boost::asio::io_service timer_ios_;
     boost::asio::io_service::work timer_work_;
     std::unique_ptr<std::thread> timer_thread_;

@@ -8,6 +8,7 @@
 #include "io_service_pool.hpp"
 #include "router.hpp"
 #include "tcp_endpoint.hpp"
+#include "topic_manager.hpp"
 
 namespace easyrpc
 {
@@ -145,75 +146,39 @@ private:
         return router::singleton::get()->route(protocol, body, flag, conn); 
     }
 
+    void remove_all_topic(const connection_ptr& conn)
+    {
+        topic_manager::singleton::get()->remove_all_topic(conn);
+    }
+
     void publisher_coming(const std::string& topic_name, const std::string& body)
     {
         std::cout << "pub topic_name: " << topic_name << ", body: " << body << std::endl;
+        for (auto& conn : topic_manager::singleton::get()->get_connection_by_topic(topic_name))
+        {
+            try
+            {
+                if (!conn.expired())
+                {
+                    conn.lock()->write(topic_name, body);
+                }
+            }
+            catch (std::exception&)
+            {
+                conn.lock()->disconnect();
+            }
+        }
     }
 
     void subscriber_coming(const std::string& topic_name, const std::string& body, const connection_ptr& conn)
     {
         if (body == subscribe_topic_flag)
         {
-            add_topic(topic_name, conn);
+            topic_manager::singleton::get()->add_topic(topic_name, conn);
         }
         else if (body == cancel_subscribe_topic_flag)
         {
-            remove_topic(topic_name, conn);
-        }
-    }
-
-    void add_topic(const std::string& topic_name, const connection_ptr& conn)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto range = topic_map_.equal_range(topic_name);
-        for (auto iter = range.first; iter != range.second; ++iter)
-        {
-            if (iter->second.lock() == conn)
-            {
-                /* std::cout << "has topic: " << topic_name << std::endl; */
-                return;
-            }
-        }
-        /* std::cout << "insert topic: " << topic_name << std::endl; */
-        topic_map_.emplace(topic_name, conn);
-    }
-
-    void remove_topic(const std::string& topic_name, const connection_ptr& conn)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto iter = topic_map_.find(topic_name);
-        if (iter != topic_map_.end())
-        {
-            auto range = topic_map_.equal_range(iter->first);
-            while (range.first != range.second)
-            {
-                if (range.first->second.lock() == conn)
-                {
-                    range.first = topic_map_.erase(range.first);
-                }
-                else
-                {
-                    ++range.first;
-                }
-            }
-        }
-    }
-
-    void remove_all_topic(const connection_ptr& conn)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        auto begin = topic_map_.begin();
-        while (begin != topic_map_.end())
-        {
-            if (begin->second.lock() == conn)
-            {
-                std::cout << "remove topic: " << begin->first << std::endl;
-                begin = topic_map_.erase(begin);
-            }
-            else
-            {
-                ++begin;
-            }
+            topic_manager::singleton::get()->remove_topic(topic_name, conn);
         }
     }
 
@@ -223,8 +188,6 @@ private:
 
     std::vector<endpoint> endpoint_vec_;
     std::vector<std::shared_ptr<tcp_endpoint>> tcp_endpoint_vec_;
-    std::unordered_multimap<std::string, connection_weak_ptr> topic_map_;
-    std::mutex mutex_;
 };
 
 }

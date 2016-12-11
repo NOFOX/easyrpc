@@ -9,6 +9,7 @@ namespace easyrpc
 const int max_buffer_len = 8192;
 const int request_header_len = 16;
 const int response_header_len = 4;
+const int push_header_len = 8;
 const std::string subscribe_topic_flag = "true";
 const std::string cancel_subscribe_topic_flag = "false";
 
@@ -40,6 +41,12 @@ struct request_header
 
 struct response_header
 {
+    unsigned int body_len;
+};
+
+struct push_header
+{
+    unsigned int protocol_len;
     unsigned int body_len;
 };
 

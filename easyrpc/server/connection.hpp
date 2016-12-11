@@ -63,6 +63,20 @@ public:
         write_impl(buffer);
     }
 
+    void write(const std::string& protocol, const std::string& body)
+    {
+        unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
+        unsigned int body_len = static_cast<unsigned int>(body.size());
+        if (protocol_len + body_len > max_buffer_len)
+        {
+            try_remove_all_topic();
+            throw std::runtime_error("Send data is too big");
+        }
+
+        const auto& buffer = get_buffer(push_header{ protocol_len,  body_len }, protocol, body);
+        write_impl(buffer);
+    }
+
     void disconnect()
     {
         if (socket_.is_open())
@@ -77,7 +91,7 @@ private:
     void read_head()
     {
         auto self(this->shared_from_this());
-        boost::asio::async_read(socket_, boost::asio::buffer(head_), 
+        boost::asio::async_read(socket_, boost::asio::buffer(req_head_buf_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
             auto guard = make_guard([this, self]{ try_remove_all_topic(); });
@@ -103,7 +117,7 @@ private:
 
     bool check_head()
     {
-        memcpy(&req_head_, head_, sizeof(head_));
+        memcpy(&req_head_, req_head_buf_, sizeof(req_head_buf_));
         unsigned int len = req_head_.protocol_len + req_head_.body_len;
         return (len > 0 && len < max_buffer_len) ? true : false;
     }
@@ -179,6 +193,15 @@ private:
         return buffer;
     }
 
+    std::vector<boost::asio::const_buffer> get_buffer(const push_header& head, const std::string& protocol, const std::string& body)
+    {
+        std::vector<boost::asio::const_buffer> buffer;
+        buffer.emplace_back(boost::asio::buffer(&head, sizeof(push_header)));
+        buffer.emplace_back(boost::asio::buffer(protocol));
+        buffer.emplace_back(boost::asio::buffer(body));
+        return buffer;
+    }
+
     void write_impl(const std::vector<boost::asio::const_buffer>& buffer)
     {
         boost::system::error_code ec;
@@ -200,7 +223,7 @@ private:
 
 private:
     boost::asio::ip::tcp::socket socket_;
-    char head_[request_header_len];
+    char req_head_buf_[request_header_len];
     request_header req_head_;
     std::vector<char> protocol_and_body_;
     atimer<> timer_;

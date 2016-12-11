@@ -23,6 +23,7 @@ public:
         {
             client_flag flag{ serialize_mode::serialize, type_ };
             call_one_way(topic_name, flag, subscribe_topic_flag);
+            do_read();
         }
         catch (std::exception& e)
         {
@@ -37,6 +38,7 @@ public:
         {
             client_flag flag{ serialize_mode::serialize, type_ };
             call_one_way(topic_name, flag, subscribe_topic_flag);
+            do_read();
         }
         catch (std::exception& e)
         {
