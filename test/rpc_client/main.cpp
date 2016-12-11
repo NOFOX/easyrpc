@@ -18,7 +18,7 @@ int main()
         pub_app.publish("weather", "good");
 #endif
         
-#if 1
+#if 0
         easyrpc::sub_client sub_app;
         sub_app.connect({ "127.0.0.1", 50051 }).run();
         /* sub_app.subscribe("news", []{ std::cout << "Hello" << std::endl; }); */
@@ -32,7 +32,7 @@ int main()
         std::cin.get();
 #endif
         
-#if 0
+#if 1
         easyrpc::rpc_client rpc_app;
         rpc_app.connect({ "127.0.0.1", 50051 }).run();
         rpc_app.call(say_hello);
