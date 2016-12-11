@@ -12,27 +12,6 @@ int main()
 
     try
     {
-#if 0
-        easyrpc::pub_client pub_app;
-        pub_app.connect({ "127.0.0.1", 50051 }).run();
-        pub_app.publish("weather", "good");
-#endif
-        
-#if 0
-        easyrpc::sub_client sub_app;
-        sub_app.connect({ "127.0.0.1", 50051 }).run();
-        /* sub_app.subscribe("news", []{ std::cout << "Hello" << std::endl; }); */
-        /* sub_app.subscribe("news", []{ std::cout << "Hello" << std::endl; }); */
-        /* sub_app.subscribe("news", []{ std::cout << "Hello" << std::endl; }); */
-        /* sub_app.subscribe("weather", []{ std::cout << "Hello" << std::endl; }); */
-        /* sub_app.subscribe("weather", []{ std::cout << "Hello" << std::endl; }); */
-        /* sub_app.subscribe("weather", []{ std::cout << "Hello" << std::endl; }); */
-        sub_app.subscribe("weather", []{ std::cout << "Hello" << std::endl; });
-        /* sub_app.cancel_subscribe("news"); */
-        std::cin.get();
-#endif
-        
-#if 1
         easyrpc::rpc_client rpc_app;
         rpc_app.connect({ "127.0.0.1", 50051 }).run();
         rpc_app.call(say_hello);
@@ -60,8 +39,6 @@ int main()
         dr.Parse(str);
         dr.Deserialize(res2);
         std::cout << res2.card_id << ", " << res2.name << ", " << res2.age << ", " << res2.national << std::endl;
-#endif
-
 #endif
     }
     catch (std::exception& e)
