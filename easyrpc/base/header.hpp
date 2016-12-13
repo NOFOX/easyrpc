@@ -10,8 +10,8 @@ const int max_buffer_len = 8192;
 const int request_header_len = 16;
 const int response_header_len = 4;
 const int push_header_len = 8;
-const std::string subscribe_topic_flag = "true";
-const std::string cancel_subscribe_topic_flag = "false";
+const std::string subscribe_topic_flag = "1";
+const std::string cancel_subscribe_topic_flag = "0";
 
 enum class serialize_mode : unsigned int
 {
