@@ -14,14 +14,14 @@ public:
     rpc_client& operator=(const rpc_client&) = delete;
     rpc_client() 
     {
-        type_ = client_type::rpc_client;
+        client_type_ = client_type::rpc_client;
     }
 
     template<typename Protocol, typename... Args>
     typename std::enable_if<std::is_void<typename Protocol::return_type>::value, typename Protocol::return_type>::type
     call(const Protocol& protocol, Args&&... args)
     {
-        client_flag flag{ serialize_mode::serialize, type_ };
+        client_flag flag{ serialize_mode::serialize, client_type_ };
         call_one_way(protocol.name(), flag, serialize(std::forward<Args>(args)...));
     }
 
@@ -29,7 +29,7 @@ public:
     typename std::enable_if<!std::is_void<typename Protocol::return_type>::value, typename Protocol::return_type>::type
     call(const Protocol& protocol, Args&&... args)
     {
-        client_flag flag{ serialize_mode::serialize, type_ };
+        client_flag flag{ serialize_mode::serialize, client_type_ };
         auto ret = call_two_way(protocol.name(), flag, serialize(std::forward<Args>(args)...));
         return protocol.deserialize(std::string(&ret[0], ret.size()));
     }
@@ -38,7 +38,7 @@ public:
     typename std::enable_if<std::is_same<ReturnType, one_way>::value>::type 
     call_raw(const std::string& protocol, const std::string& body)
     {
-        client_flag flag{ serialize_mode::non_serialize, type_ };
+        client_flag flag{ serialize_mode::non_serialize, client_type_ };
         call_one_way(protocol, flag, body);
     }
 
@@ -46,7 +46,7 @@ public:
     typename std::enable_if<std::is_same<ReturnType, two_way>::value, std::string>::type 
     call_raw(const std::string& protocol, const std::string& body)
     {
-        client_flag flag{ serialize_mode::non_serialize, type_ };
+        client_flag flag{ serialize_mode::non_serialize, client_type_ };
         auto ret = call_two_way(protocol, flag, body);
         return std::string(&ret[0], ret.size());
     }

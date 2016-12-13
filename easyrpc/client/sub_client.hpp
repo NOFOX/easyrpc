@@ -13,7 +13,7 @@ public:
     sub_client& operator=(const sub_client&) = delete;
     sub_client()
     {
-        type_ = client_type::sub_client;
+        client_type_ = client_type::sub_client;
     }
 
     template<typename Function>
@@ -21,7 +21,7 @@ public:
     {
         try
         {
-            client_flag flag{ serialize_mode::serialize, type_ };
+            client_flag flag{ serialize_mode::serialize, client_type_ };
             call_one_way(topic_name, flag, subscribe_topic_flag);
             do_read();
         }
@@ -36,7 +36,7 @@ public:
     {
         try
         {
-            client_flag flag{ serialize_mode::serialize, type_ };
+            client_flag flag{ serialize_mode::serialize, client_type_ };
             call_one_way(topic_name, flag, subscribe_topic_flag);
             do_read();
         }
@@ -60,7 +60,7 @@ public:
     {
         try
         {
-            client_flag flag{ serialize_mode::serialize, type_ };
+            client_flag flag{ serialize_mode::serialize, client_type_ };
             call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         }
         catch (std::exception& e)

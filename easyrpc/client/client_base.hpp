@@ -290,7 +290,7 @@ private:
     }
 
 protected:
-    client_type type_;
+    client_type client_type_;
 
 private:
     boost::asio::io_service ios_;
