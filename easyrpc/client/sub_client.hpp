@@ -21,11 +21,10 @@ public:
     {
         try
         {
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                client_flag flag{ serialize_mode::serialize, client_type_ };
-                call_one_way(topic_name, flag, subscribe_topic_flag);
-            }
+            client_flag flag{ serialize_mode::serialize, client_type_ };
+            std::unique_lock<std::mutex> lock(mutex_);
+            call_one_way(topic_name, flag, subscribe_topic_flag);
+            lock.unlock();
             do_read();
         }
         catch (std::exception& e)
@@ -39,11 +38,10 @@ public:
     {
         try
         {
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                client_flag flag{ serialize_mode::serialize, client_type_ };
-                call_one_way(topic_name, flag, subscribe_topic_flag);
-            }
+            client_flag flag{ serialize_mode::serialize, client_type_ };
+            std::unique_lock<std::mutex> lock(mutex_);
+            call_one_way(topic_name, flag, subscribe_topic_flag);
+            lock.unlock();
             do_read();
         }
         catch (std::exception& e)

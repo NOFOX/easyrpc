@@ -20,7 +20,8 @@ public:
     client_base() 
         : work_(ios_), socket_(ios_), 
         timer_work_(timer_ios_), 
-        timer_(timer_ios_), is_connected_(false) {}
+        timer_(timer_ios_),
+        is_connected_(false), is_do_read_(false) {}
     virtual ~client_base()
     {
         stop();
@@ -70,7 +71,11 @@ public:
 
     void do_read()
     {
-        async_read_head();
+        if (!is_do_read_)
+        {
+            is_do_read_ = true;
+            async_read_head();
+        }
     }
 
     void connect()
@@ -81,6 +86,7 @@ public:
     void disconnect()
     {
         is_connected_ = false;
+        is_do_read_ = false;
         if (socket_.is_open())
         {
             boost::system::error_code ignore_ec;
@@ -121,6 +127,7 @@ private:
         if (ec)
         {
             is_connected_ = false;
+            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -141,6 +148,7 @@ private:
         if (ec)
         {
             is_connected_ = false;
+            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -163,6 +171,7 @@ private:
         if (ec)
         {
             is_connected_ = false;
+            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
         return body_;
@@ -313,6 +322,7 @@ private:
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
     std::atomic<bool> is_connected_ ;
+    std::atomic<bool> is_do_read_;
 };
 
 }
