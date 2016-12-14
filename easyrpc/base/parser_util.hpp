@@ -2,7 +2,7 @@
 #define _PARSER_UTIL_H
 
 #include <type_traits>
-#include "base/serialize_util.hpp"
+#include "serialize_util.hpp"
 
 namespace easyrpc
 {

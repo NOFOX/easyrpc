@@ -2,6 +2,7 @@
 #define _SUB_CLIENT_H
 
 #include "client_base.hpp"
+#include "sub_router.hpp"
 
 namespace easyrpc
 {
@@ -25,6 +26,7 @@ public:
             std::unique_lock<std::mutex> lock(mutex_);
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
+            sub_router::singleton::get()->bind(topic_name, func);
             do_read();
         }
         catch (std::exception& e)
@@ -42,6 +44,7 @@ public:
             std::unique_lock<std::mutex> lock(mutex_);
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
+            sub_router::singleton::get()->bind(topic_name, func, self);
             do_read();
         }
         catch (std::exception& e)
