@@ -72,11 +72,13 @@ public:
 
     void unbind(const std::string& protocol)
     {
+        std::lock_guard<std::mutex> lock(map_mutex_);
         invoker_map_.erase(protocol);
     }
 
     bool is_bind(const std::string& protocol)
     {
+        std::lock_guard<std::mutex> lock(map_mutex_);
         auto iter = invoker_map_.find(protocol);
         if (iter != invoker_map_.end())
         {
@@ -99,11 +101,13 @@ public:
 
     void unbind_raw(const std::string& protocol)
     {
+        std::lock_guard<std::mutex> lock(raw_map_mutex_);
         invoker_raw_map_.erase(protocol);
     }
 
     bool is_bind_raw(const std::string& protocol)
     {
+        std::lock_guard<std::mutex> lock(raw_map_mutex_);
         auto iter = invoker_raw_map_.find(protocol);
         if (iter != invoker_raw_map_.end())
         {
@@ -261,6 +265,7 @@ private:
     template<typename Function>
     void bind_non_member_func(const std::string& protocol, const Function& func)
     {
+        std::lock_guard<std::mutex> lock(map_mutex_);
         invoker_map_[protocol] = { std::bind(&invoker<Function>::template apply<std::tuple<>>, func, std::tuple<>(), 
                                              std::placeholders::_1, std::placeholders::_2), function_traits<Function>::arity };
     }
@@ -268,6 +273,7 @@ private:
     template<typename Function, typename Self>
     void bind_member_func(const std::string& protocol, const Function& func, Self* self)
     {
+        std::lock_guard<std::mutex> lock(map_mutex_);
         invoker_map_[protocol] = { std::bind(&invoker<Function>::template apply_member<std::tuple<>, Self>, func, self, std::tuple<>(), 
                                              std::placeholders::_1, std::placeholders::_2), function_traits<Function>::arity };
     }
@@ -275,6 +281,7 @@ private:
     template<typename Function>
     void bind_non_member_func_raw(const std::string& protocol, const Function& func)
     {
+        std::lock_guard<std::mutex> lock(raw_map_mutex_);
         invoker_raw_map_[protocol] = { std::bind(&invoker_raw<Function>::apply, func, 
                                                 std::placeholders::_1, std::placeholders::_2) };
     }
@@ -282,6 +289,7 @@ private:
     template<typename Function, typename Self>
     void bind_member_func_raw(const std::string& protocol, const Function& func, Self* self)
     {
+        std::lock_guard<std::mutex> lock(raw_map_mutex_);
         invoker_raw_map_[protocol] = { std::bind(&invoker_raw<Function>::template apply_member<Self>, func, self, 
                                                 std::placeholders::_1, std::placeholders::_2) };
     }
@@ -289,6 +297,8 @@ private:
 private:
     std::unordered_map<std::string, sub_invoker_function> invoker_map_;
     std::unordered_map<std::string, sub_invoker_function_raw> invoker_raw_map_;
+    std::mutex map_mutex_;
+    std::mutex raw_map_mutex_;
 };
 
 }
