@@ -17,8 +17,10 @@ namespace easyrpc
 class client_base
 {
 public:
-    client_base() : work_(ios_), socket_(ios_), 
-    timer_work_(timer_ios_), timer_(timer_ios_) {}
+    client_base() 
+        : work_(ios_), socket_(ios_), 
+        timer_work_(timer_ios_), 
+        timer_(timer_ios_), is_connected_(false) {}
     virtual ~client_base()
     {
         stop();
@@ -291,6 +293,7 @@ private:
 
 protected:
     client_type client_type_;
+    std::mutex mutex_;
 
 private:
     boost::asio::io_service ios_;
@@ -309,7 +312,7 @@ private:
     std::unique_ptr<std::thread> timer_thread_;
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
-    bool is_connected_ = false;
+    std::atomic<bool> is_connected_ ;
 };
 
 }
