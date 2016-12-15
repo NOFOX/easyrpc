@@ -63,7 +63,7 @@ public:
         write_impl(buffer);
     }
 
-    void write(const std::string& protocol, const std::string& body)
+    void write(const std::string& protocol, const std::string& body, serialize_mode mode)
     {
         unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
         unsigned int body_len = static_cast<unsigned int>(body.size());
@@ -73,7 +73,7 @@ public:
             throw std::runtime_error("Send data is too big");
         }
 
-        const auto& buffer = get_buffer(push_header{ protocol_len,  body_len }, protocol, body);
+        const auto& buffer = get_buffer(push_header{ protocol_len,  body_len, mode }, protocol, body);
         write_impl(buffer);
     }
 

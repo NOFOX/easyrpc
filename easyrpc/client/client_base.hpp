@@ -284,7 +284,7 @@ private:
             }
 
             bool ok = route(std::string(&protocol_and_body_[0], push_head_.protocol_len), 
-                             std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len));
+                             std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len), push_head_.mode);
             if (!ok)
             {
                 log_warn("Router failed");
@@ -293,10 +293,11 @@ private:
         });
     }
 
-    bool route(const std::string& protocol, const std::string& body)
+    bool route(const std::string& protocol, const std::string& body, serialize_mode mode)
     {
         std::cout << "protocol: " << protocol << std::endl;
         std::cout << "body: " << body << std::endl;
+        std::cout << "mode: " << static_cast<unsigned int>(mode) << std::endl;
         return true;
     }
 

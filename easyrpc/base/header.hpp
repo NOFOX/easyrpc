@@ -9,7 +9,7 @@ namespace easyrpc
 constexpr const int max_buffer_len = 8 * 1024 * 1024;
 const int request_header_len = 16;
 const int response_header_len = 4;
-const int push_header_len = 8;
+const int push_header_len = 12;
 const std::string subscribe_topic_flag = "1";
 const std::string cancel_subscribe_topic_flag = "0";
 
@@ -48,6 +48,7 @@ struct push_header
 {
     unsigned int protocol_len;
     unsigned int body_len;
+    serialize_mode mode;
 };
 
 struct endpoint
