@@ -4,6 +4,7 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include "file_util.hpp"
+#include "singleton.hpp"
 
 namespace easyrpc
 {
@@ -14,18 +15,11 @@ static const std::size_t max_files = 30;
 
 class logger_impl
 {
+    DEFINE_SINGLETON(logger_impl);
 public:
-    logger_impl(const logger_impl&) = delete;
-    logger_impl& operator=(const logger_impl&) = delete;
     logger_impl()
     {
         init();
-    }
-
-    static logger_impl& instance()
-    {
-        static logger_impl logger;
-        return logger;
     }
 
     std::shared_ptr<spdlog::logger> get_console_logger()
@@ -121,8 +115,8 @@ public:
     void log(const char* fmt, Args&&... args)
     {
         const std::string& content = make_content(fmt);
-        logger_impl::instance().get_console_logger()->log(level_, content.c_str(), std::forward<Args>(args)...);
-        logger_impl::instance().get_file_logger()->log(level_, content.c_str(), std::forward<Args>(args)...);
+        logger_impl::singleton::get()->get_console_logger()->log(level_, content.c_str(), std::forward<Args>(args)...);
+        logger_impl::singleton::get()->get_file_logger()->log(level_, content.c_str(), std::forward<Args>(args)...);
     }
 
 private:

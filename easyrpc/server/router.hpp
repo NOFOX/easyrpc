@@ -25,7 +25,7 @@ public:
     invoker_function(const function_t& func, std::size_t param_size) 
         : func_(func), param_size_(param_size) {}
 
-    void operator()(const std::string& body, const std::shared_ptr<connection>& conn)
+    void operator()(const std::string& body, const connection_ptr& conn)
     {
         try
         {
@@ -61,7 +61,7 @@ public:
     invoker_function_raw() = default;
     invoker_function_raw(const function_t& func) : func_(func) {}
 
-    void operator()(const std::string& body, const std::shared_ptr<connection>& conn)
+    void operator()(const std::string& body, const connection_ptr& conn)
     {
         try
         {

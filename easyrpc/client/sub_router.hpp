@@ -23,8 +23,18 @@ public:
     sub_invoker_function(const function_t& func, std::size_t param_size) 
         : func_(func), param_size_(param_size) {}
 
-    void operator()()
+    void operator()(const std::string& body)
     {
+        try
+        {
+            parser_util parser(body);
+            std::string result;
+            func_(parser, result);
+        }
+        catch (std::exception& e)
+        {
+            log_warn(e.what());
+        }
     }
 
     std::size_t param_size() const
@@ -44,8 +54,17 @@ public:
     sub_invoker_function_raw() = default;
     sub_invoker_function_raw(const function_t& func) : func_(func) {}
 
-    void operator()()
+    void operator()(const std::string& body)
     {
+        try
+        {
+            std::string result;
+            func_(body, result);
+        }
+        catch (std::exception& e)
+        {
+            log_warn(e.what());
+        }
     }
 
 private:
@@ -116,8 +135,31 @@ public:
         return false;
     }
 
-    bool route(const std::string& protocol, const std::string& body)
+    bool route(const std::string& protocol, const std::string& body, serialize_mode mode)
     {
+        std::cout << "protocol: " << protocol << std::endl;
+        std::cout << "body: " << body << std::endl;
+        std::cout << "mode: " << static_cast<unsigned int>(mode) << std::endl;
+        if (mode == serialize_mode::serialize)
+        {
+            std::lock_guard<std::mutex> lock(map_mutex_);
+            auto iter = invoker_map_.find(protocol);
+            if (iter == invoker_map_.end())
+            {
+                return false;
+            }
+            iter->second(body);
+        }
+        else if (mode == serialize_mode::non_serialize)
+        {
+            std::lock_guard<std::mutex> lock(raw_map_mutex_);
+            auto iter = invoker_raw_map_.find(protocol);
+            if (iter == invoker_raw_map_.end())
+            {
+                return false;
+            }
+            iter->second(body);
+        }
         return true;
     }
 

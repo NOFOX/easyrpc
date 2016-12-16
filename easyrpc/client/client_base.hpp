@@ -10,6 +10,7 @@
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
+#include "sub_router.hpp"
 
 namespace easyrpc
 {
@@ -283,22 +284,14 @@ private:
                 return;
             }
 
-            bool ok = route(std::string(&protocol_and_body_[0], push_head_.protocol_len), 
-                             std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len), push_head_.mode);
+            bool ok = sub_router::singleton::get()->route(std::string(&protocol_and_body_[0], push_head_.protocol_len), 
+                                                         std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len), push_head_.mode);
             if (!ok)
             {
                 log_warn("Router failed");
                 return;
             }
         });
-    }
-
-    bool route(const std::string& protocol, const std::string& body, serialize_mode mode)
-    {
-        std::cout << "protocol: " << protocol << std::endl;
-        std::cout << "body: " << body << std::endl;
-        std::cout << "mode: " << static_cast<unsigned int>(mode) << std::endl;
-        return true;
     }
 
 protected:
