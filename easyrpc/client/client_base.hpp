@@ -1,6 +1,7 @@
 #ifndef _CLIENT_BASE_H
 #define _CLIENT_BASE_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <thread>
@@ -18,11 +19,9 @@ namespace easyrpc
 class client_base
 {
 public:
-    client_base() 
-        : work_(ios_), socket_(ios_), 
-        timer_work_(timer_ios_), 
-        timer_(timer_ios_),
-        is_connected_(false), is_do_read_(false) {}
+    client_base() : work_(ios_), socket_(ios_), 
+    timer_work_(timer_ios_), timer_(timer_ios_), is_connected_(false),
+    heartbeats_work_(heartbeats_ios_), heartbeats_timer_(heartbeats_ios_){}
     virtual ~client_base()
     {
         stop();
@@ -44,18 +43,17 @@ public:
 
     void run()
     {
-        thread_ = std::make_unique<std::thread>([this]{ ios_.run(); });
-        if (timeout_milli_ != 0)
-        {
-            timer_thread_ = std::make_unique<std::thread>([this]{ timer_ios_.run(); });
-        }
+        start_ios_thread();
+        start_timer_thread();
         try_connect();
+        start_heartbeats_thread();
     }
 
     void stop()
     {
-        stop_ios_thread();
+        stop_heartbeats_thread();
         stop_timer_thread();
+        stop_ios_thread();
     }
 
     void call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
@@ -72,11 +70,7 @@ public:
 
     void do_read()
     {
-        if (!is_do_read_)
-        {
-            is_do_read_ = true;
-            async_read_head();
-        }
+        async_read_head();
     }
 
     void connect()
@@ -87,7 +81,6 @@ public:
     void disconnect()
     {
         is_connected_ = false;
-        is_do_read_ = false;
         if (socket_.is_open())
         {
             boost::system::error_code ignore_ec;
@@ -128,7 +121,6 @@ private:
         if (ec)
         {
             is_connected_ = false;
-            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -149,7 +141,6 @@ private:
         if (ec)
         {
             is_connected_ = false;
-            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
     }
@@ -172,7 +163,6 @@ private:
         if (ec)
         {
             is_connected_ = false;
-            is_do_read_ = false;
             throw std::runtime_error(ec.message());
         }
         return body_;
@@ -184,38 +174,62 @@ private:
         {
             connect();
             is_connected_ = true;
+            if (client_type_ == client_type::sub_client)
+            {
+                do_read();
+            }
         }
     }
 
     void start_timer()
     {
-        if (timeout_milli_ == 0)
+        if (timeout_milli_ != 0)
         {
-            return;
+            timer_.start(timeout_milli_);
         }
-
-        timer_.bind([this]{ disconnect(); });
-        timer_.set_single_shot(true);
-        timer_.start(timeout_milli_);
     }
 
     void stop_timer()
     {
-        if (timeout_milli_ == 0)
+        if (timeout_milli_ != 0)
         {
-            return;
+            timer_.stop();
         }
-        timer_.stop();
     }
 
-    void stop_ios_thread()
+    void start_ios_thread()
     {
-        ios_.stop();
-        if (thread_ != nullptr)
+        thread_ = std::make_unique<std::thread>([this]{ ios_.run(); });
+    }
+
+    void start_timer_thread()
+    {
+        if (timeout_milli_ != 0)
         {
-            if (thread_->joinable())
+            timer_thread_ = std::make_unique<std::thread>([this]{ timer_ios_.run(); });
+            timer_.bind([this]{ disconnect(); });
+            timer_.set_single_shot(true);
+        }
+    }
+
+    void start_heartbeats_thread()
+    {
+        if (client_type_ == client_type::sub_client)
+        {
+            heatbeats_thread_ = std::make_unique<std::thread>([this]{ heartbeats_ios_.run(); });
+            heartbeats_timer_.bind([this]{ heartbeats_timer(); });
+            heartbeats_timer_.start(heartbeats_milli);
+        }
+    }
+
+    void stop_heartbeats_thread()
+    {
+        heartbeats_ios_.stop();
+        if (heatbeats_thread_ != nullptr)
+        {
+            if (heatbeats_thread_->joinable())
             {
-                thread_->join();
+                heatbeats_thread_->join();
             }
         }
     }
@@ -228,6 +242,18 @@ private:
             if (timer_thread_->joinable())
             {
                 timer_thread_->join();
+            }
+        }
+    }
+
+    void stop_ios_thread()
+    {
+        ios_.stop();
+        if (thread_ != nullptr)
+        {
+            if (thread_->joinable())
+            {
+                thread_->join();
             }
         }
     }
@@ -294,6 +320,21 @@ private:
         });
     }
 
+    void heartbeats_timer()
+    {
+        std::cout << "###################################### heartbeats_timer" << std::endl;
+        try
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            client_flag flag{ serialize_mode::serialize, client_type_ };
+            call_one_way(heartbeats_flag, flag, heartbeats_flag);
+        }
+        catch (std::exception& e)
+        {
+            log_warn(e.what());
+        }
+    }
+
 protected:
     client_type client_type_;
     std::mutex mutex_;
@@ -310,13 +351,19 @@ private:
     char push_head_buf_[push_header_len];
     push_header push_head_;
     std::vector<char> protocol_and_body_;
+    
     boost::asio::io_service timer_ios_;
     boost::asio::io_service::work timer_work_;
     std::unique_ptr<std::thread> timer_thread_;
     atimer<> timer_;
+
     std::size_t timeout_milli_ = 0;
     std::atomic<bool> is_connected_ ;
-    std::atomic<bool> is_do_read_;
+
+    boost::asio::io_service heartbeats_ios_;
+    boost::asio::io_service::work heartbeats_work_;
+    std::unique_ptr<std::thread> heatbeats_thread_;
+    atimer<> heartbeats_timer_;
 };
 
 }

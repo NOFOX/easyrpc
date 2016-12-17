@@ -27,7 +27,6 @@ public:
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
             sub_router::singleton::get()->bind(topic_name, func);
-            do_read();
         }
         catch (std::exception& e)
         {
@@ -45,7 +44,6 @@ public:
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
             sub_router::singleton::get()->bind(topic_name, func, self);
-            do_read();
         }
         catch (std::exception& e)
         {
@@ -63,7 +61,6 @@ public:
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
             sub_router::singleton::get()->bind_raw(topic_name, func);
-            do_read();
         }
         catch (std::exception& e)
         {
@@ -81,7 +78,6 @@ public:
             call_one_way(topic_name, flag, subscribe_topic_flag);
             lock.unlock();
             sub_router::singleton::get()->bind_raw(topic_name, func, self);
-            do_read();
         }
         catch (std::exception& e)
         {
