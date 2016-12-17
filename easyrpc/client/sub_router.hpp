@@ -158,6 +158,27 @@ public:
         return true;
     }
 
+    std::vector<std::string> get_all_topic()
+    {
+        std::vector<std::string> topic_vec;
+
+        std::unique_lock<std::mutex> lock(map_mutex_);
+        for (auto& invoker : invoker_map_)
+        {
+            topic_vec.emplace_back(invoker.first);
+        }
+        lock.unlock();
+
+        std::unique_lock<std::mutex> raw_lock(raw_map_mutex_);
+        for (auto& invoker : invoker_raw_map_)
+        {
+            topic_vec.emplace_back(invoker.first);
+        }
+        raw_lock.unlock();
+
+        return topic_vec;
+    }
+
 private:
     template<typename Function, typename... Args>
     static typename std::enable_if<std::is_void<typename std::result_of<Function(Args...)>::type>::value>::type

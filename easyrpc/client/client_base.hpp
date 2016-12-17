@@ -58,24 +58,15 @@ public:
 
     void call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
-        try_connect();
+        std::lock_guard<std::mutex> lock(mutex_);
         write(protocol, flag, body);
     }
 
     std::vector<char> call_two_way(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
-        call_one_way(protocol, flag, body);
+        std::lock_guard<std::mutex> lock(mutex_);
+        write(protocol, flag, body);
         return read();
-    }
-
-    void do_read()
-    {
-        async_read_head();
-    }
-
-    void connect()
-    {
-        boost::asio::connect(socket_, endpoint_iter_);
     }
 
     void disconnect()
@@ -89,7 +80,35 @@ public:
         }
     }
 
+    void try_connect()
+    {
+        if (!is_connected_)
+        {
+            std::lock_guard<std::mutex> lock(conn_mutex_);
+            if (!is_connected_)
+            {
+                connect();
+                is_connected_ = true;
+                if (client_type_ == client_type::sub_client)
+                {
+                    do_read();
+                    retry_subscribe();
+                }
+            }
+        }
+    }
+
 private:
+    void connect()
+    {
+        boost::asio::connect(socket_, endpoint_iter_);
+    }
+
+    void do_read()
+    {
+        async_read_head();
+    }
+
     void write(const std::string& protocol, const client_flag& flag, const std::string& body)
     {
         unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
@@ -166,19 +185,6 @@ private:
             throw std::runtime_error(ec.message());
         }
         return body_;
-    }
-
-    void try_connect()
-    {
-        if (!is_connected_)
-        {
-            connect();
-            is_connected_ = true;
-            if (client_type_ == client_type::sub_client)
-            {
-                do_read();
-            }
-        }
     }
 
     void start_timer()
@@ -325,7 +331,7 @@ private:
         std::cout << "###################################### heartbeats_timer" << std::endl;
         try
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            try_connect();
             client_flag flag{ serialize_mode::serialize, client_type_ };
             call_one_way(heartbeats_flag, flag, heartbeats_flag);
         }
@@ -335,9 +341,24 @@ private:
         }
     }
 
+    void retry_subscribe()
+    {
+        try
+        {
+            for (auto& topic_name : sub_router::singleton::get()->get_all_topic())
+            {
+                client_flag flag{ serialize_mode::serialize, client_type_ };
+                call_one_way(topic_name, flag, subscribe_topic_flag);
+            }
+        }
+        catch (std::exception& e)
+        {
+            log_warn(e.what());
+        }
+    }
+
 protected:
     client_type client_type_;
-    std::mutex mutex_;
 
 private:
     boost::asio::io_service ios_;
@@ -351,7 +372,7 @@ private:
     char push_head_buf_[push_header_len];
     push_header push_head_;
     std::vector<char> protocol_and_body_;
-    
+
     boost::asio::io_service timer_ios_;
     boost::asio::io_service::work timer_work_;
     std::unique_ptr<std::thread> timer_thread_;
@@ -359,6 +380,8 @@ private:
 
     std::size_t timeout_milli_ = 0;
     std::atomic<bool> is_connected_ ;
+    std::mutex mutex_;
+    std::mutex conn_mutex_;
 
     boost::asio::io_service heartbeats_ios_;
     boost::asio::io_service::work heartbeats_work_;
