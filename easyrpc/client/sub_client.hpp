@@ -68,6 +68,16 @@ public:
         call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         sub_router::singleton::get()->unbind_raw(topic_name);
     }
+
+    bool is_subscribe(const std::string& topic_name)
+    {
+        return sub_router::singleton::get()->is_bind(topic_name);
+    }
+
+    bool is_subscribe_raw(const std::string& topic_name)
+    {
+        return sub_router::singleton::get()->is_bind_raw(topic_name);
+    }
 };
 
 }

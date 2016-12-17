@@ -176,7 +176,7 @@ public:
         }
         raw_lock.unlock();
 
-        return topic_vec;
+        return std::move(topic_vec);
     }
 
 private:
