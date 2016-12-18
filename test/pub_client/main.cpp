@@ -25,18 +25,10 @@ std::vector<person_info_res> get_person_info()
 
 int main()
 {
+    easyrpc::pub_client client;
     try
     {
-        easyrpc::pub_client client;
         client.connect({ "127.0.0.1", 50051 }).run();
-        while (true)
-        {
-            client.publish("weather", "The weather is good");
-            client.publish("news", "good news");
-
-            client.publish("person_info", get_person_info());
-            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        }
     }
     catch (std::exception& e)
     {
@@ -44,6 +36,20 @@ int main()
         return 0;
     }
 
+    while (true)
+    {
+        try
+        {
+            client.publish("weather", "The weather is good");
+            /* client.publish("news", "good news"); */
+            /* client.publish("person_info", get_person_info()); */
+        }
+        catch (std::exception& e)
+        {
+            easyrpc::log_warn(e.what());
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    }
     return 0;
 }
 

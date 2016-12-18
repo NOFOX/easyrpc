@@ -163,8 +163,9 @@ private:
                     conn.lock()->write(topic_name, body, mode);
                 }
             }
-            catch (std::exception&)
+            catch (std::exception& e)
             {
+                log_warn(e.what());
                 conn.lock()->disconnect();
             }
         }
