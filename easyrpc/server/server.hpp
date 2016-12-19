@@ -9,6 +9,7 @@
 #include "router.hpp"
 #include "tcp_endpoint.hpp"
 #include "topic_manager.hpp"
+#include "connection_manager.hpp"
 
 namespace easyrpc
 {
@@ -18,7 +19,7 @@ class server
 public:
     server(const server&) = delete;
     server& operator=(const server&) = delete;
-    server()
+    server() : timer_work_(timer_ios_), timer_(timer_ios_)
     {
         set_pub_sub_callback();
     }
@@ -58,10 +59,12 @@ public:
         listen();
         accept();
         io_service_pool::singleton::get()->run();
+        start_timer_thread();
     }
 
     void stop()
     {
+        stop_timer_thread();
         io_service_pool::singleton::get()->stop();
     }
 
@@ -115,10 +118,10 @@ private:
         auto route_func = std::bind(&server::route, this, 
                                     std::placeholders::_1, std::placeholders::_2,
                                     std::placeholders::_3, std::placeholders::_4);
-        auto remove_all_topic_func = std::bind(&server::remove_all_topic, this, std::placeholders::_1);
+        auto handle_error_func = std::bind(&server::handle_error, this, std::placeholders::_1);
         for (auto& ep : endpoint_vec_)
         {
-            auto endpoint = std::make_shared<tcp_endpoint>(route_func, remove_all_topic_func);
+            auto endpoint = std::make_shared<tcp_endpoint>(route_func, handle_error_func);
             endpoint->listen(ep.ip, ep.port);
             tcp_endpoint_vec_.emplace_back(endpoint);
         }
@@ -146,9 +149,10 @@ private:
         return router::singleton::get()->route(protocol, body, flag, conn); 
     }
 
-    void remove_all_topic(const connection_ptr& conn)
+    void handle_error(const connection_ptr& conn)
     {
         topic_manager::singleton::get()->remove_all_topic(conn);
+        connection_manager::singleton::get()->remove_connection(conn);
     }
 
     void publisher_coming(const std::string& topic_name, const std::string& body, serialize_mode mode)
@@ -176,14 +180,49 @@ private:
         if (topic_name == heartbeats_flag && body == heartbeats_flag)
         {
             std::cout << "heatbeatsing.........." << std::endl;
+            connection_manager::singleton::get()->update_time(conn);
         }
         else if (topic_name != heartbeats_flag && body == subscribe_topic_flag)
         {
+            connection_manager::singleton::get()->add_connection(conn);
             topic_manager::singleton::get()->add_topic(topic_name, conn);
         }
         else if (topic_name != heartbeats_flag && body == cancel_subscribe_topic_flag)
         {
             topic_manager::singleton::get()->remove_topic(topic_name, conn);
+        }
+    }
+
+    void start_timer_thread()
+    {
+        timer_thread_ = std::make_unique<std::thread>([this]{ timer_ios_.run(); });
+        timer_.bind([this]{ check_connection_timeout(); });
+        timer_.start(connection_timeout_milli);
+    }
+
+    void stop_timer_thread()
+    {
+        timer_ios_.stop();
+        if (timer_thread_ != nullptr)
+        {
+            if (timer_thread_->joinable())
+            {
+                timer_thread_->join();
+            }
+        }
+    }
+
+    void check_connection_timeout()
+    {
+        std::cout << "check_connection_timeout" << std::endl;
+        std::unordered_map<connection_ptr, time_t> conn_map = connection_manager::singleton::get()->get_connection_map();
+        time_t current_time = time(nullptr);
+        for (auto& iter : conn_map)
+        {
+            if (current_time - iter.second >= connection_timeout_sec)
+            {
+                iter.first->disconnect();
+            }
         }
     }
 
@@ -193,6 +232,11 @@ private:
 
     std::vector<endpoint> endpoint_vec_;
     std::vector<std::shared_ptr<tcp_endpoint>> tcp_endpoint_vec_;
+
+    boost::asio::io_service timer_ios_;
+    boost::asio::io_service::work timer_work_;
+    std::unique_ptr<std::thread> timer_thread_;
+    atimer<> timer_;
 };
 
 }

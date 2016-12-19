@@ -19,7 +19,7 @@ using connection_weak_ptr = std::weak_ptr<connection>;
 
 using router_callback = std::function<bool(const std::string&, const std::string&, 
                                            const client_flag&, const std::shared_ptr<connection>&)>;
-using remove_all_topic_callback = std::function<void(const connection_ptr&)>;
+using handle_error_callback = std::function<void(const connection_ptr&)>;
 
 class connection : public std::enable_shared_from_this<connection>
 {
@@ -29,10 +29,10 @@ public:
     connection& operator=(const connection&) = delete;
     connection(boost::asio::io_service& ios, 
                std::size_t timeout_milli, const router_callback& route_func, 
-               const remove_all_topic_callback& remove_all_topic_func)
+               const handle_error_callback& handle_error_func)
         : socket_(ios), timer_(ios), 
         timeout_milli_(timeout_milli), route_(route_func), 
-        remove_all_topic_(remove_all_topic_func) {} 
+        handle_error_(handle_error_func) {} 
 
     ~connection()
     {
@@ -55,7 +55,7 @@ public:
         unsigned int body_len = static_cast<unsigned int>(body.size());
         if (body_len > max_buffer_len)
         {
-            try_remove_all_topic();
+            handle_error();
             throw std::runtime_error("Send data is too big");
         }
 
@@ -69,7 +69,7 @@ public:
         unsigned int body_len = static_cast<unsigned int>(body.size());
         if (protocol_len + body_len > max_buffer_len)
         {
-            try_remove_all_topic();
+            handle_error();
             throw std::runtime_error("Send data is too big");
         }
 
@@ -94,7 +94,7 @@ private:
         boost::asio::async_read(socket_, boost::asio::buffer(req_head_buf_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
-            auto guard = make_guard([this, self]{ try_remove_all_topic(); });
+            auto guard = make_guard([this, self]{ handle_error(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -131,7 +131,7 @@ private:
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
             read_head();
-            auto guard = make_guard([this, self]{ try_remove_all_topic(); });
+            auto guard = make_guard([this, self]{ handle_error(); });
             if (!socket_.is_open())
             {
                 log_warn("Socket is not open");
@@ -208,16 +208,16 @@ private:
         boost::asio::write(socket_, buffer, ec);
         if (ec)
         {
-            try_remove_all_topic();
+            handle_error();
             throw std::runtime_error(ec.message());
         }
     }
 
-    void try_remove_all_topic()
+    void handle_error()
     {
         if (req_head_.flag.type == client_type::sub_client)
         {
-            remove_all_topic_(this->shared_from_this());
+            handle_error_(this->shared_from_this());
         }
     }
 
@@ -229,7 +229,7 @@ private:
     atimer<> timer_;
     std::size_t timeout_milli_ = 0;
     router_callback route_;
-    remove_all_topic_callback remove_all_topic_;
+    handle_error_callback handle_error_;
 };
 
 }
