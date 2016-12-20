@@ -41,6 +41,7 @@ int main()
         try
         {
             client.publish("weather", "The weather is good");
+            client.publish_raw("song", "My heart will go on");
             /* client.publish("news", "good news"); */
             /* client.publish("person_info", get_person_info()); */
         }

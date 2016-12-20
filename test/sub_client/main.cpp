@@ -38,6 +38,7 @@ int main()
         sub_app.subscribe("weather", &handle_weather);
         sub_app.subscribe("person_info", &handle_person_info);
         sub_app.subscribe("news", &message_handle::handle_news, &m);
+        sub_app.subscribe_raw("song", [](const std::string& str){ std::cout << str << std::endl; });
         std::cin.get();
     }
     catch (std::exception& e)
