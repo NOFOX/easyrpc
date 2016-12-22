@@ -13,7 +13,7 @@ int main()
     try
     {
         easyrpc::rpc_client rpc_app;
-        rpc_app.connect({ "127.0.0.1", 50051 }).timeout(2000).run();
+        rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
         rpc_app.call(say_hello);
         std::string ret = rpc_app.call(echo, "Hello world");
         std::cout << ret << std::endl;

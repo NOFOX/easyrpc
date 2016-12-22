@@ -28,7 +28,8 @@ int main()
     easyrpc::pub_client client;
     try
     {
-        client.connect({ "127.0.0.1", 50051 }).run();
+        /* client.connect({ "127.0.0.1", 50051 }).run(); */
+        client.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
     }
     catch (std::exception& e)
     {

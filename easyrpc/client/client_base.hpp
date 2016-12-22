@@ -44,8 +44,8 @@ public:
     void run()
     {
         start_ios_thread();
-        start_timer_thread();
         try_connect();
+        start_timer_thread();
         start_heartbeats_thread();
     }
 
@@ -101,7 +101,25 @@ public:
 private:
     void connect()
     {
-        boost::asio::connect(socket_, endpoint_iter_);
+        auto begin_time = std::chrono::high_resolution_clock::now();
+        while (true)
+        {
+            try
+            {
+                boost::asio::connect(socket_, endpoint_iter_);
+                break;
+            }
+            catch (std::exception& e)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto elapsed_time = end_time - begin_time;
+                if (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count() > static_cast<long>(timeout_milli_))
+                {
+                    throw std::runtime_error(e.what());
+                }
+            }
+        }
     }
 
     void do_read()

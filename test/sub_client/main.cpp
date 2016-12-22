@@ -34,7 +34,7 @@ int main()
     {
         message_handle m;
         easyrpc::sub_client sub_app;
-        sub_app.connect({ "127.0.0.1", 50051 }).run();
+        sub_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
         sub_app.subscribe("weather", &handle_weather);
         sub_app.subscribe("person_info", &handle_person_info);
         sub_app.subscribe("news", &message_handle::handle_news, &m);
