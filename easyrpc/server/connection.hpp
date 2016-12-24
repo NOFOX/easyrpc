@@ -2,6 +2,7 @@
 #define _CONNECTION_H
 
 #include <vector>
+#include <list>
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/timer.hpp>
@@ -58,7 +59,7 @@ public:
             throw std::runtime_error("Send data is too big");
         }
 
-        const auto& buffer = get_buffer(response_header{ body_len }, body);
+        std::string buffer = get_buffer(response_header{ body_len }, body);
         write_impl(buffer);
     }
 
@@ -72,7 +73,7 @@ public:
             throw std::runtime_error("Send data is too big");
         }
 
-        const auto& buffer = get_buffer(push_header{ protocol_len,  body_len, mode }, protocol, body);
+        std::string buffer = get_buffer(push_header{ protocol_len,  body_len, mode }, protocol, body);
         write_impl(buffer);
     }
 
@@ -162,27 +163,27 @@ private:
         socket_.set_option(option, ec);
     }
 
-    std::vector<boost::asio::const_buffer> get_buffer(const response_header& head, const std::string& body)
+    std::string get_buffer(const response_header& head, const std::string& body)
     {
-        std::vector<boost::asio::const_buffer> buffer;
-        buffer.emplace_back(boost::asio::buffer(&head, sizeof(response_header)));
-        buffer.emplace_back(boost::asio::buffer(body));
-        return buffer;
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(body);
+        return std::move(buffer);
     }
 
-    std::vector<boost::asio::const_buffer> get_buffer(const push_header& head, const std::string& protocol, const std::string& body)
+    std::string get_buffer(const push_header& head, const std::string& protocol, const std::string& body)
     {
-        std::vector<boost::asio::const_buffer> buffer;
-        buffer.emplace_back(boost::asio::buffer(&head, sizeof(push_header)));
-        buffer.emplace_back(boost::asio::buffer(protocol));
-        buffer.emplace_back(boost::asio::buffer(body));
-        return buffer;
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(protocol);
+        buffer.append(body);
+        return std::move(buffer);
     }
 
-    void write_impl(const std::vector<boost::asio::const_buffer>& buffer)
+    void write_impl(const std::string& buffer)
     {
         boost::system::error_code ec;
-        boost::asio::write(socket_, buffer, ec);
+        boost::asio::write(socket_, boost::asio::buffer(buffer), ec);
         if (ec)
         {
             handle_error();
