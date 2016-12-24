@@ -164,7 +164,7 @@ private:
             {
                 if (!conn.expired())
                 {
-                    conn.lock()->write(topic_name, body, mode);
+                    conn.lock()->async_write(topic_name, body, mode);
                 }
             }
             catch (std::exception& e)

@@ -10,6 +10,7 @@
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
+#include "base/async_send_queue.hpp"
 
 namespace easyrpc
 {
@@ -75,6 +76,33 @@ public:
 
         std::string buffer = get_buffer(push_header{ protocol_len,  body_len, mode }, protocol, body);
         write_impl(buffer);
+    }
+
+    void async_write(const std::string& body)
+    {
+        unsigned int body_len = static_cast<unsigned int>(body.size());
+        if (body_len > max_buffer_len)
+        {
+            handle_error();
+            throw std::runtime_error("Send data is too big");
+        }
+
+        std::string buffer = get_buffer(response_header{ body_len }, body);
+        async_write_impl(buffer);
+    }
+
+    void async_write(const std::string& protocol, const std::string& body, serialize_mode mode)
+    {
+        unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
+        unsigned int body_len = static_cast<unsigned int>(body.size());
+        if (protocol_len + body_len > max_buffer_len)
+        {
+            handle_error();
+            throw std::runtime_error("Send data is too big");
+        }
+
+        std::string buffer = get_buffer(push_header{ protocol_len,  body_len, mode }, protocol, body);
+        async_write_impl(buffer);
     }
 
     void disconnect()
@@ -191,6 +219,40 @@ private:
         }
     }
 
+    void async_write_impl(const std::string& buffer)
+    {
+        bool is_empty = send_queue_.empty();
+        send_queue_.emplace_back(buffer);
+        if (is_empty)
+        {
+            async_write_impl();
+        }
+    }
+
+    void async_write_impl()
+    {
+        std::string buffer = send_queue_.front();
+        auto self(this->shared_from_this());
+        boost::asio::async_write(socket_, boost::asio::buffer(buffer), 
+                                 [this, self](boost::system::error_code ec, std::size_t)
+        {
+            if (!ec)
+            {
+                send_queue_.pop_front();
+                if (!send_queue_.empty())
+                {
+                    async_write_impl();
+                }
+            }
+            else
+            {
+                send_queue_.clear();
+                handle_error();
+                throw std::runtime_error(ec.message());
+            }
+        });
+    }
+
     void handle_error()
     {
         if (req_head_.flag.type == client_type::sub_client)
@@ -207,6 +269,8 @@ private:
     std::size_t timeout_milli_ = 0;
     router_callback route_;
     handle_error_callback handle_error_;
+
+    async_send_queue send_queue_;
 };
 
 }

@@ -34,7 +34,7 @@ public:
             func_(parser, result);
             if (!result.empty())
             {
-                conn->write(result);
+                conn->async_write(result);
             }
         }
         catch (std::exception& e)
@@ -69,7 +69,7 @@ public:
             func_(body, result);
             if (!result.empty())
             {
-                conn->write(result);
+                conn->async_write(result);
             }
         }
         catch (std::exception& e)
