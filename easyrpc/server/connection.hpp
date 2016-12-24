@@ -30,8 +30,7 @@ public:
     connection(boost::asio::io_service& ios, 
                std::size_t timeout_milli, const router_callback& route_func, 
                const handle_error_callback& handle_error_func)
-        : socket_(ios), timer_(ios), 
-        timeout_milli_(timeout_milli), route_(route_func), 
+        : socket_(ios), timeout_milli_(timeout_milli), route_(route_func), 
         handle_error_(handle_error_func) {} 
 
     ~connection()
@@ -163,28 +162,6 @@ private:
         socket_.set_option(option, ec);
     }
 
-    void start_timer()
-    {
-        if (timeout_milli_ == 0)
-        {
-            return;
-        }
-
-        auto self(this->shared_from_this());
-        timer_.bind([this, self]{ disconnect(); });
-        timer_.set_single_shot(true);
-        timer_.start(timeout_milli_);
-    }
-
-    void stop_timer()
-    {
-        if (timeout_milli_ == 0)
-        {
-            return;
-        }
-        timer_.stop();
-    }
-
     std::vector<boost::asio::const_buffer> get_buffer(const response_header& head, const std::string& body)
     {
         std::vector<boost::asio::const_buffer> buffer;
@@ -226,7 +203,6 @@ private:
     char req_head_buf_[request_header_len];
     request_header req_head_;
     std::vector<char> protocol_and_body_;
-    atimer<> timer_;
     std::size_t timeout_milli_ = 0;
     router_callback route_;
     handle_error_callback handle_error_;
