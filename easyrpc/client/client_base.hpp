@@ -136,25 +136,23 @@ private:
             throw std::runtime_error("Send data is too big");
         }
 
-        const auto& buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
+        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
         write_impl(buffer);
     }
 
-    std::vector<boost::asio::const_buffer> get_buffer(const request_header& head, 
-                                                      const std::string& protocol, 
-                                                      const std::string& body)
+    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
     {
-        std::vector<boost::asio::const_buffer> buffer;
-        buffer.emplace_back(boost::asio::buffer(&head, sizeof(request_header)));
-        buffer.emplace_back(boost::asio::buffer(protocol));
-        buffer.emplace_back(boost::asio::buffer(body));
-        return buffer;
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(protocol);
+        buffer.append(body);
+        return std::move(buffer);
     }
 
-    void write_impl(const std::vector<boost::asio::const_buffer>& buffer)
+    void write_impl(const std::string& buffer)
     {
         boost::system::error_code ec;
-        boost::asio::write(socket_, buffer, ec);
+        boost::asio::write(socket_, boost::asio::buffer(buffer), ec);
         if (ec)
         {
             is_connected_ = false;
