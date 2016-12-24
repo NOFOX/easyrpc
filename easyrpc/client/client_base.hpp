@@ -11,6 +11,7 @@
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
+#include "base/async_send_queue.hpp"
 #include "sub_router.hpp"
 
 namespace easyrpc
@@ -67,6 +68,11 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         write(protocol, flag, body);
         return read();
+    }
+
+    void async_call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
+    {
+        async_write(protocol, flag, body);
     }
 
     void disconnect()
@@ -140,6 +146,19 @@ private:
         write_impl(buffer);
     }
 
+    void async_write(const std::string& protocol, const client_flag& flag, const std::string& body)
+    {
+        unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
+        unsigned int body_len = static_cast<unsigned int>(body.size());
+        if (protocol_len + body_len > max_buffer_len)
+        {
+            throw std::runtime_error("Send data is too big");
+        }
+
+        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
+        async_write_impl(buffer);
+    }
+
     std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
     {
         std::string buffer;
@@ -158,6 +177,39 @@ private:
             is_connected_ = false;
             throw std::runtime_error(ec.message());
         }
+    }
+
+    void async_write_impl(const std::string& buffer)
+    {
+        bool is_empty = send_queue_.empty();
+        send_queue_.emplace_back(buffer);
+        if (is_empty)
+        {
+            async_write_impl();
+        }
+    }
+
+    void async_write_impl()
+    {
+        std::string buffer = send_queue_.front();
+        boost::asio::async_write(socket_, boost::asio::buffer(buffer), 
+                                 [this](boost::system::error_code ec, std::size_t)
+        {
+            if (!ec)
+            {
+                send_queue_.pop_front();
+                if (!send_queue_.empty())
+                {
+                    async_write_impl();
+                }
+            }
+            else
+            {
+                is_connected_ = false;
+                send_queue_.clear();
+                log_warn(ec.message());
+            }
+        });
     }
 
     std::vector<char> read()
@@ -403,6 +455,8 @@ private:
     boost::asio::io_service::work heartbeats_work_;
     std::unique_ptr<std::thread> heatbeats_thread_;
     atimer<> heartbeats_timer_;
+
+    async_send_queue send_queue_;
 };
 
 }

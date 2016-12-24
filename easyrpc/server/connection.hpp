@@ -248,7 +248,7 @@ private:
             {
                 send_queue_.clear();
                 handle_error();
-                throw std::runtime_error(ec.message());
+                log_warn(ec.message());
             }
         });
     }
@@ -269,7 +269,6 @@ private:
     std::size_t timeout_milli_ = 0;
     router_callback route_;
     handle_error_callback handle_error_;
-
     async_send_queue send_queue_;
 };
 

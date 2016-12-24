@@ -28,7 +28,6 @@ int main()
     easyrpc::pub_client client;
     try
     {
-        /* client.connect({ "127.0.0.1", 50051 }).run(); */
         client.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
     }
     catch (std::exception& e)
@@ -41,8 +40,8 @@ int main()
     {
         try
         {
-            client.publish("weather", "The weather is good");
-            client.publish_raw("song", "My heart will go on");
+            client.async_publish("weather", "The weather is good");
+            client.async_publish_raw("song", "My heart will go on");
             /* client.publish("news", "good news"); */
             /* client.publish("person_info", get_person_info()); */
         }
