@@ -3,6 +3,8 @@
 #include <easyrpc/easyrpc.hpp>
 #include "user_define_classes.hpp"
 
+easyrpc::pub_client client;
+
 std::vector<person_info_res> get_person_info()
 {
     std::vector<person_info_res> res_vec;
@@ -23,9 +25,46 @@ std::vector<person_info_res> get_person_info()
     return std::move(res_vec);
 }
 
+void test_func()
+{
+    while (true)
+    {
+        try
+        {
+            client.async_publish("weather", "The weather is good");
+            client.async_publish_raw("song", "My heart will go on");
+            /* client.publish("weather", "The weather is good"); */
+            /* client.publish_raw("song", "My heart will go on"); */
+        }
+        catch (std::exception& e)
+        {
+            easyrpc::log_warn(e.what());
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
+void test_func2()
+{
+    while (true)
+    {
+        try
+        {
+            client.async_publish("weather", "The weather is good");
+            client.async_publish_raw("song", "My heart will go on");
+            /* client.publish("weather", "The weather is good"); */
+            /* client.publish_raw("song", "My heart will go on"); */
+        }
+        catch (std::exception& e)
+        {
+            easyrpc::log_warn(e.what());
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
 int main()
 {
-    easyrpc::pub_client client;
     try
     {
         client.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
@@ -36,21 +75,12 @@ int main()
         return 0;
     }
 
-    while (true)
-    {
-        try
-        {
-            client.async_publish("weather", "The weather is good");
-            client.async_publish_raw("song", "My heart will go on");
-            /* client.publish("news", "good news"); */
-            /* client.publish("person_info", get_person_info()); */
-        }
-        catch (std::exception& e)
-        {
-            easyrpc::log_warn(e.what());
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-    }
+    std::thread t(test_func);
+    std::thread t2(test_func2);
+
+    t.join();
+    t2.join();
+
     return 0;
 }
 

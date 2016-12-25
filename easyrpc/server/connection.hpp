@@ -18,7 +18,6 @@ namespace easyrpc
 class connection;
 using connection_ptr = std::shared_ptr<connection>;
 using connection_weak_ptr = std::weak_ptr<connection>;
-
 using router_callback = std::function<bool(const std::string&, const std::string&, 
                                            const client_flag&, const std::shared_ptr<connection>&)>;
 using handle_error_callback = std::function<void(const connection_ptr&)>;
@@ -32,7 +31,7 @@ public:
     connection(boost::asio::io_service& ios, 
                std::size_t timeout_milli, const router_callback& route_func, 
                const handle_error_callback& handle_error_func)
-        : socket_(ios), timeout_milli_(timeout_milli), route_(route_func), 
+        : ios_(ios), socket_(ios), timeout_milli_(timeout_milli), route_(route_func), 
         handle_error_(handle_error_func) {} 
 
     ~connection()
@@ -221,19 +220,23 @@ private:
 
     void async_write_impl(const std::string& buffer)
     {
-        bool is_empty = send_queue_.empty();
-        send_queue_.emplace_back(buffer);
-        if (is_empty)
+        auto self(this->shared_from_this());
+        ios_.post([this, self, buffer]
         {
-            async_write_impl();
-        }
+            std::cout << "size: " << send_queue_.size() << std::endl;
+            bool is_empty = send_queue_.empty();
+            send_queue_.emplace_back(buffer);
+            if (is_empty)
+            {
+                async_write_impl();
+            }
+        });
     }
 
     void async_write_impl()
     {
-        std::string buffer = send_queue_.front();
         auto self(this->shared_from_this());
-        boost::asio::async_write(socket_, boost::asio::buffer(buffer), 
+        boost::asio::async_write(socket_, boost::asio::buffer(send_queue_.front()), 
                                  [this, self](boost::system::error_code ec, std::size_t)
         {
             if (!ec)
@@ -246,9 +249,9 @@ private:
             }
             else
             {
+                log_warn(ec.message());
                 send_queue_.clear();
                 handle_error();
-                log_warn(ec.message());
             }
         });
     }
@@ -262,6 +265,7 @@ private:
     }
 
 private:
+    boost::asio::io_service& ios_;
     boost::asio::ip::tcp::socket socket_;
     char req_head_buf_[request_header_len];
     request_header req_head_;

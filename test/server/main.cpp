@@ -72,7 +72,8 @@ int main()
         /* ep.emplace_back({ "127.0.0.1", 50052 }); */
         ep.emplace_back(easyrpc::endpoint{ "127.0.0.1", 50051 });
         ep.emplace_back(easyrpc::endpoint{ "127.0.0.1", 50052 });
-        app.listen(ep).multithreaded(10).run();
+        /* app.listen(ep).multithreaded(10).run(); */
+        app.listen(ep).multithreaded(1).run();
     }
     catch (std::exception& e)
     {

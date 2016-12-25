@@ -38,6 +38,12 @@ public:
         return send_queue_.empty();
     }
 
+    std::size_t size()
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return send_queue_.size();
+    }
+
 private:
     std::list<std::string> send_queue_;
     std::mutex mutex_;

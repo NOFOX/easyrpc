@@ -181,18 +181,21 @@ private:
 
     void async_write_impl(const std::string& buffer)
     {
-        bool is_empty = send_queue_.empty();
-        send_queue_.emplace_back(buffer);
-        if (is_empty)
+        ios_.post([this, buffer]
         {
-            async_write_impl();
-        }
+            std::cout << "size: " << send_queue_.size() << std::endl;
+            bool is_empty = send_queue_.empty();
+            send_queue_.emplace_back(buffer);
+            if (is_empty)
+            {
+                async_write_impl();
+            }
+        });
     }
 
     void async_write_impl()
     {
-        std::string buffer = send_queue_.front();
-        boost::asio::async_write(socket_, boost::asio::buffer(buffer), 
+        boost::asio::async_write(socket_, boost::asio::buffer(send_queue_.front()), 
                                  [this](boost::system::error_code ec, std::size_t)
         {
             if (!ec)
@@ -401,7 +404,7 @@ private:
         {
             try_connect();
             client_flag flag{ serialize_mode::serialize, client_type_ };
-            call_one_way(heartbeats_flag, flag, heartbeats_flag);
+            async_call_one_way(heartbeats_flag, flag, heartbeats_flag);
         }
         catch (std::exception& e)
         {
@@ -416,7 +419,7 @@ private:
             for (auto& topic_name : sub_router::singleton::get()->get_all_topic())
             {
                 client_flag flag{ serialize_mode::serialize, client_type_ };
-                call_one_way(topic_name, flag, subscribe_topic_flag);
+                async_call_one_way(topic_name, flag, subscribe_topic_flag);
             }
         }
         catch (std::exception& e)
