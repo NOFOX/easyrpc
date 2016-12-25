@@ -157,7 +157,6 @@ private:
 
     void publisher_coming(const std::string& topic_name, const std::string& body, serialize_mode mode)
     {
-        std::cout << "pub topic_name: " << topic_name << ", body: " << body << std::endl;
         for (auto& conn : topic_manager::singleton::get()->get_connection_by_topic(topic_name))
         {
             try
