@@ -26,7 +26,7 @@ public:
         easypack::unpack up(text);
         return_type ret;
         up.unpack_args(ret);
-        return ret;
+        return std::move(ret);
     }
 
     const std::string& name() const
