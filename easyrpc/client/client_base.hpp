@@ -104,6 +104,16 @@ public:
         }
     }
 
+protected:
+    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
+    {
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(protocol);
+        buffer.append(body);
+        return std::move(buffer);
+    }
+
 private:
     void connect()
     {
@@ -159,14 +169,7 @@ private:
         async_write_impl(buffer);
     }
 
-    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
-    {
-        std::string buffer;
-        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
-        buffer.append(protocol);
-        buffer.append(body);
-        return std::move(buffer);
-    }
+
 
     void write_impl(const std::string& buffer)
     {

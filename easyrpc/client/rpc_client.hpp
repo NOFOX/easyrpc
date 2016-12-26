@@ -3,6 +3,7 @@
 
 #include "protocol.hpp"
 #include "client_base.hpp"
+#include "rpc_async_call.hpp"
 
 namespace easyrpc
 {
@@ -53,6 +54,25 @@ public:
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
         auto ret = call_two_way(protocol, flag, body);
         return std::string(&ret[0], ret.size());
+    }
+
+    template<typename Protocol, typename... Args>
+    auto async_call(const Protocol& protocol, Args&&... args)
+    {
+        std::string body = serialize(std::forward<Args>(args)...);
+        std::string proto_name = protocol.name();
+        unsigned int protocol_len = static_cast<unsigned int>(proto_name.size());
+        unsigned int body_len = static_cast<unsigned int>(body.size());
+        if (protocol_len + body_len > max_buffer_len)
+        {
+            throw std::runtime_error("Send data is too big");
+        }
+
+        /* try_connect(); */
+        client_flag flag{ serialize_mode::serialize, client_type_ };
+        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, proto_name, body);
+        using return_type = typename Protocol::return_type;
+        return rpc_async_call<return_type>{ buffer };
     }
 };
 

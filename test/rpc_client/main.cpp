@@ -61,6 +61,21 @@ int main()
 {
     try
     {
+        /* rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run(); */
+        rpc_app.async_call(echo, "Hello").result([]
+        {
+            std::cout << "Hello world"; 
+        });
+    }
+    catch (std::exception& e)
+    {
+        easyrpc::log_warn(e.what());
+        return 0;
+    }
+
+#if 0
+    try
+    {
         rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
         rpc_app.call(say_hello);
         std::string ret = rpc_app.call(echo, "Hello world");
@@ -84,6 +99,7 @@ int main()
 
     t.join();
     t2.join();
+#endif
 
 #if 0
     try
