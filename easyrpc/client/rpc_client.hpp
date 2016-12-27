@@ -3,7 +3,6 @@
 
 #include "protocol.hpp"
 #include "client_base.hpp"
-#include "rpc_async_call.hpp"
 
 namespace easyrpc
 {
@@ -56,6 +55,23 @@ public:
         return std::string(&ret[0], ret.size());
     }
 
+    template<typename ReturnType>
+    class rpc_task
+    {
+    public:
+        rpc_task(const std::string& buffer) : buffer_(buffer) {}
+
+        template<typename Function>
+        void result(const Function& func)
+        {
+            std::cout << buffer_ << std::endl;
+            func();
+        }
+
+    private:
+        std::string buffer_;
+    };
+
     template<typename Protocol, typename... Args>
     auto async_call(const Protocol& protocol, Args&&... args)
     {
@@ -72,7 +88,7 @@ public:
         client_flag flag{ serialize_mode::serialize, client_type_ };
         std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, proto_name, body);
         using return_type = typename Protocol::return_type;
-        return rpc_async_call<return_type>{ buffer };
+        return rpc_task<return_type>{ buffer };
     }
 };
 
