@@ -62,9 +62,9 @@ int main()
     try
     {
         /* rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run(); */
-        rpc_app.async_call(echo, "Hello").result([]
+        rpc_app.async_call(echo, "Hello").result([](const auto& ret)
         {
-            std::cout << "Hello world"; 
+            std::cout << ret << std::endl;
         });
     }
     catch (std::exception& e)

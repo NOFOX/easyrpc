@@ -59,17 +59,26 @@ public:
     class rpc_task
     {
     public:
+        using task_t = std::function<void()>; 
         rpc_task(const std::string& buffer) : buffer_(buffer) {}
 
         template<typename Function>
         void result(const Function& func)
         {
             std::cout << buffer_ << std::endl;
-            func();
+            task_ = [&func]
+            {
+                ReturnType ret;
+                ret = "nihao";
+                return func(ret); 
+            };
+            func("Hello world");
+            task_();
         }
 
     private:
         std::string buffer_;
+        task_t task_;
     };
 
     template<typename Protocol, typename... Args>
