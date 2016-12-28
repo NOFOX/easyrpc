@@ -7,9 +7,9 @@ namespace easyrpc
 {
 
 constexpr const int max_buffer_len = 20 * 1024 * 1024; // 20MB
-const int request_header_len = 16;
+constexpr const int request_header_len = 4 + 4 + 4 + 4;
 const int response_header_len = 4;
-const int push_header_len = 12;
+constexpr const int push_header_len = 4 + 4 + 4;
 const std::string subscribe_topic_flag = "1";
 const std::string cancel_subscribe_topic_flag = "0";
 const std::string heartbeats_flag = "00";
