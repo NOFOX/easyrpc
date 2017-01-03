@@ -12,7 +12,6 @@
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
 #include "base/async_send_queue.hpp"
-#include "sub_router.hpp"
 
 namespace easyrpc
 {
@@ -44,11 +43,10 @@ public:
     virtual void run()
     {
         start_ios_thread();
-        try_connect();
         start_timer_thread();
     }
 
-    void stop()
+    virtual void stop()
     {
         stop_timer_thread();
         stop_ios_thread();
@@ -83,6 +81,21 @@ public:
         }
     }
 
+protected:
+    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
+    {
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(protocol);
+        buffer.append(body);
+        return std::move(buffer);
+    }
+
+    boost::asio::ip::tcp::socket& get_socket()
+    {
+        return socket_;
+    }
+
     bool try_connect()
     {
         if (!is_connected_)
@@ -96,16 +109,6 @@ public:
             }
         }
         return false;
-    }
-
-protected:
-    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
-    {
-        std::string buffer;
-        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
-        buffer.append(protocol);
-        buffer.append(body);
-        return std::move(buffer);
     }
 
 private:
@@ -157,8 +160,6 @@ private:
         std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
         async_write_impl(buffer);
     }
-
-
 
     void write_impl(const std::string& buffer)
     {
@@ -305,14 +306,8 @@ private:
         }
     }
 
-
 protected:
     client_type client_type_;
-
-    boost::asio::ip::tcp::socket& get_socket()
-    {
-        return socket_;
-    }
 
 private:
     boost::asio::io_service ios_;

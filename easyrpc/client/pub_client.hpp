@@ -17,6 +17,12 @@ public:
         client_type_ = client_type::pub_client;
     }
 
+    virtual void run() override final
+    {
+        client_base::run();
+        try_connect();
+    }
+
     template<typename... Args>
     void publish(const std::string& topic_name, Args&&... args)
     {

@@ -59,6 +59,7 @@ void test_func2()
 
 int main()
 {
+#if 0
     try
     {
         /* rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run(); */
@@ -72,8 +73,8 @@ int main()
         easyrpc::log_warn(e.what());
         return 0;
     }
+#endif
 
-#if 0
     try
     {
         rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run();
@@ -99,7 +100,6 @@ int main()
 
     t.join();
     t2.join();
-#endif
 
 #if 0
     try

@@ -17,15 +17,28 @@ public:
         client_type_ = client_type::sub_client;
     }
 
+    virtual ~sub_client()
+    {
+        stop();
+    }
+
     virtual void run() override final
     {
         client_base::run();
+        sync_connect();
+        start_heartbeats_thread();
+    }
+
+    virtual void stop() override final
+    {
+        stop_heartbeats_thread();
+        client_base::stop();
     }
 
     template<typename Function>
     void subscribe(const std::string& topic_name, const Function& func)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind(topic_name, func);
@@ -34,7 +47,7 @@ public:
     template<typename Function, typename Self>
     void subscribe(const std::string& topic_name, const Function& func, Self* self)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind(topic_name, func, self);
@@ -43,7 +56,7 @@ public:
     template<typename Function>
     void async_subscribe(const std::string& topic_name, const Function& func)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         async_call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind(topic_name, func);
@@ -52,7 +65,7 @@ public:
     template<typename Function, typename Self>
     void async_subscribe(const std::string& topic_name, const Function& func, Self* self)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         async_call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind(topic_name, func, self);
@@ -61,7 +74,7 @@ public:
     template<typename Function>
     void subscribe_raw(const std::string& topic_name, const Function& func)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
         call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind_raw(topic_name, func);
@@ -70,7 +83,7 @@ public:
     template<typename Function, typename Self>
     void subscribe_raw(const std::string& topic_name, const Function& func, Self* self)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
         call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind_raw(topic_name, func, self);
@@ -79,7 +92,7 @@ public:
     template<typename Function>
     void async_subscribe_raw(const std::string& topic_name, const Function& func)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
         async_call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind_raw(topic_name, func);
@@ -88,7 +101,7 @@ public:
     template<typename Function, typename Self>
     void async_subscribe_raw(const std::string& topic_name, const Function& func, Self* self)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
         async_call_one_way(topic_name, flag, subscribe_topic_flag);
         sub_router::singleton::get()->bind_raw(topic_name, func, self);
@@ -96,7 +109,7 @@ public:
 
     void cancel_subscribe(const std::string& topic_name)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         sub_router::singleton::get()->unbind(topic_name);
@@ -104,7 +117,7 @@ public:
 
     void cancel_subscribe_raw(const std::string& topic_name)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         sub_router::singleton::get()->unbind_raw(topic_name);
@@ -112,7 +125,7 @@ public:
 
     void async_cancel_subscribe(const std::string& topic_name)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         async_call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         sub_router::singleton::get()->unbind(topic_name);
@@ -120,7 +133,7 @@ public:
 
     void async_cancel_subscribe_raw(const std::string& topic_name)
     {
-        /* try_connect(); */
+        sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
         async_call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
         sub_router::singleton::get()->unbind_raw(topic_name);
@@ -136,6 +149,7 @@ public:
         return sub_router::singleton::get()->is_bind_raw(topic_name);
     }
 
+private:
     void async_read_head()
     {
         boost::asio::async_read(get_socket(), boost::asio::buffer(push_head_buf_), 
@@ -203,7 +217,7 @@ public:
         std::cout << "###################################### heartbeats_timer" << std::endl;
         try
         {
-            /* try_connect(); */
+            sync_connect();
             client_flag flag{ serialize_mode::serialize, client_type_ };
             async_call_one_way(heartbeats_flag, flag, heartbeats_flag);
         }
@@ -245,6 +259,15 @@ public:
             {
                 heatbeats_thread_->join();
             }
+        }
+    }
+
+    void sync_connect()
+    {
+        if (try_connect())
+        {
+            async_read_head();
+            retry_subscribe();
         }
     }
 

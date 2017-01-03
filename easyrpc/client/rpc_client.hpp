@@ -17,6 +17,12 @@ public:
         client_type_ = client_type::rpc_client;
     }
 
+    virtual void run() override final
+    {
+        client_base::run();
+        try_connect();
+    }
+
     template<typename Protocol, typename... Args>
     typename std::enable_if<std::is_void<typename Protocol::return_type>::value, typename Protocol::return_type>::type
     call(const Protocol& protocol, Args&&... args)
