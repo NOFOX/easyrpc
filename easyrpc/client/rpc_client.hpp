@@ -1,6 +1,8 @@
 #ifndef _RPC_CLIENT_H
 #define _RPC_CLIENT_H
 
+#include <unordered_map>
+#include <mutex>
 #include "base/common_util.hpp"
 #include "protocol.hpp"
 #include "client_base.hpp"
@@ -62,30 +64,32 @@ public:
         return std::string(&ret[0], ret.size());
     }
 
+    using task_t = std::function<void(const std::string&)>; 
     template<typename ReturnType>
     class rpc_task
     {
     public:
-        using task_t = std::function<void()>; 
-        rpc_task(const std::string& buffer) : buffer_(buffer) {}
+        rpc_task(const std::string& buffer, rpc_client* client) : buffer_(buffer), client_(client) {}
 
         template<typename Function>
         void result(const Function& func)
         {
-            std::cout << buffer_ << std::endl;
-            task_ = [&func]
+            /* std::cout << buffer_ << std::endl; */
+            task_ = [&func](const std::string& body)
             {
+                std::cout << "body: " << body << std::endl;
                 ReturnType ret;
                 ret = "nihao";
                 return func(ret); 
             };
-            func("Hello world");
-            task_();
+            /* task_("Hello C++"); */
+            client_->add_bind_func(gen_uuid(), task_);
         }
 
     private:
         std::string buffer_;
         task_t task_;
+        rpc_client* client_;
     };
 
     template<typename Protocol, typename... Args>
@@ -104,8 +108,18 @@ public:
         client_flag flag{ serialize_mode::serialize, client_type_ };
         std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, proto_name, body);
         using return_type = typename Protocol::return_type;
-        return rpc_task<return_type>{ buffer };
+        return rpc_task<return_type>{ buffer, this };
     }
+
+    void add_bind_func(const std::string& call_id, const task_t& task)
+    {
+        std::lock_guard<std::mutex> lock(task_mutex_);
+        task_map_.emplace(call_id, task);
+    }
+
+private:
+    std::unordered_map<std::string, task_t> task_map_;
+    std::mutex task_mutex_;
 };
 
 }
