@@ -4,7 +4,6 @@
 #include <string>
 #include <type_traits>
 #include "base/function_traits.hpp"
-#include "base/serialize_util.hpp"
 
 #define EASYRPC_RPC_PROTOCOL_DEFINE(handler, func_type) const static easyrpc::protocol_define<func_type> handler { #handler }
 

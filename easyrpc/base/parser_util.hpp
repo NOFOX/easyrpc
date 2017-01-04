@@ -2,7 +2,7 @@
 #define _PARSER_UTIL_H
 
 #include <type_traits>
-#include "serialize_util.hpp"
+#include <easypack/easypack.hpp>
 
 namespace easyrpc
 {
@@ -28,6 +28,14 @@ public:
 private:
     easypack::unpack up_;
 };
+
+template<typename... Args>
+std::string serialize(Args... args) 
+{
+    easypack::pack p;
+    p.pack_args(std::forward<Args>(args)...);
+    return p.get_string();
+}
 
 }
 #endif

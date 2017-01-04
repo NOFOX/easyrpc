@@ -1,7 +1,6 @@
 #ifndef _PUB_CLIENT_H
 #define _PUB_CLIENT_H
 
-#include "base/serialize_util.hpp"
 #include "client_base.hpp"
 
 namespace easyrpc

@@ -11,6 +11,7 @@
 #include "base/atimer.hpp"
 #include "base/scope_guard.hpp"
 #include "base/logger.hpp"
+#include "base/parser_util.hpp"
 #include "base/async_send_queue.hpp"
 
 namespace easyrpc
