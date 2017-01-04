@@ -1,6 +1,7 @@
 #ifndef _RPC_CLIENT_H
 #define _RPC_CLIENT_H
 
+#include "base/common_util.hpp"
 #include "protocol.hpp"
 #include "client_base.hpp"
 
