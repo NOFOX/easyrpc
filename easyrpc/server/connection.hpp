@@ -18,7 +18,7 @@ namespace easyrpc
 class connection;
 using connection_ptr = std::shared_ptr<connection>;
 using connection_weak_ptr = std::weak_ptr<connection>;
-using router_callback = std::function<bool(const std::string&, const std::string&, 
+using router_callback = std::function<bool(const std::string&, const std::string&, const std::string&, 
                                            const client_flag&, const std::shared_ptr<connection>&)>;
 using handle_error_callback = std::function<void(const connection_ptr&)>;
 
@@ -50,16 +50,17 @@ public:
         return socket_;
     }
 
-    void write(const std::string& body)
+    void write(const std::string& body, const std::string& call_id = "")
     {
+        unsigned int call_id_len = static_cast<unsigned int>(call_id.size());
         unsigned int body_len = static_cast<unsigned int>(body.size());
-        if (body_len > max_buffer_len)
+        if (call_id_len + body_len > max_buffer_len)
         {
             handle_error();
             throw std::runtime_error("Send data is too big");
         }
 
-        std::string buffer = get_buffer(response_header{ body_len }, body);
+        std::string buffer = get_buffer(response_header{ call_id_len, body_len }, call_id, body);
         write_impl(buffer);
     }
 
@@ -77,16 +78,17 @@ public:
         write_impl(buffer);
     }
 
-    void async_write(const std::string& body)
+    void async_write(const std::string& body, const std::string& call_id = "")
     {
+        unsigned int call_id_len = static_cast<unsigned int>(call_id.size());
         unsigned int body_len = static_cast<unsigned int>(body.size());
-        if (body_len > max_buffer_len)
+        if (call_id_len + body_len > max_buffer_len)
         {
             handle_error();
             throw std::runtime_error("Send data is too big");
         }
 
-        std::string buffer = get_buffer(response_header{ body_len }, body);
+        std::string buffer = get_buffer(response_header{ call_id_len, body_len }, call_id, body);
         async_write_impl(buffer);
     }
 
@@ -145,14 +147,14 @@ private:
     bool check_head()
     {
         memcpy(&req_head_, req_head_buf_, sizeof(req_head_buf_));
-        unsigned int len = req_head_.protocol_len + req_head_.body_len;
+        unsigned int len = req_head_.call_id_len + req_head_.protocol_len + req_head_.body_len;
         return (len > 0 && len < max_buffer_len) ? true : false;
     }
 
     void read_protocol_and_body()
     {
         protocol_and_body_.clear();
-        protocol_and_body_.resize(req_head_.protocol_len + req_head_.body_len);
+        protocol_and_body_.resize(req_head_.call_id_len + req_head_.protocol_len + req_head_.body_len);
         auto self(this->shared_from_this());
         boost::asio::async_read(socket_, boost::asio::buffer(protocol_and_body_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
@@ -171,8 +173,9 @@ private:
                 return;
             }
 
-            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.protocol_len), 
-                             std::string(&protocol_and_body_[req_head_.protocol_len], req_head_.body_len), 
+            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.call_id_len),
+                             std::string(&protocol_and_body_[req_head_.call_id_len], req_head_.protocol_len), 
+                             std::string(&protocol_and_body_[req_head_.call_id_len + req_head_.protocol_len], req_head_.body_len), 
                              req_head_.flag, self);
             if (!ok)
             {
@@ -190,10 +193,11 @@ private:
         socket_.set_option(option, ec);
     }
 
-    std::string get_buffer(const response_header& head, const std::string& body)
+    std::string get_buffer(const response_header& head, const std::string& call_id, const std::string& body)
     {
         std::string buffer;
         buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
+        buffer.append(call_id);
         buffer.append(body);
         return std::move(buffer);
     }

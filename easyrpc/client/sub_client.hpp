@@ -40,7 +40,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->bind(topic_name, func);
     }
 
@@ -49,7 +52,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->bind(topic_name, func, self);
     }
 
@@ -58,7 +64,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        async_call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->bind(topic_name, func);
     }
 
@@ -67,7 +76,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        async_call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->bind(topic_name, func, self);
     }
 
@@ -76,7 +88,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->bind_raw(topic_name, func);
     }
 
@@ -85,7 +100,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->bind_raw(topic_name, func, self);
     }
 
@@ -94,7 +112,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        async_call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->bind_raw(topic_name, func);
     }
 
@@ -103,7 +124,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        async_call_one_way(topic_name, flag, subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->bind_raw(topic_name, func, self);
     }
 
@@ -111,7 +135,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = cancel_subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->unbind(topic_name);
     }
 
@@ -119,7 +146,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = cancel_subscribe_topic_flag;
+        call_one_way(flag, content);
         sub_router::singleton::get()->unbind_raw(topic_name);
     }
 
@@ -127,7 +157,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        async_call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = cancel_subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->unbind(topic_name);
     }
 
@@ -135,7 +168,10 @@ public:
     {
         sync_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        async_call_one_way(topic_name, flag, cancel_subscribe_topic_flag);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = cancel_subscribe_topic_flag;
+        async_call_one_way(flag, content);
         sub_router::singleton::get()->unbind_raw(topic_name);
     }
 
@@ -219,7 +255,10 @@ private:
         {
             sync_connect();
             client_flag flag{ serialize_mode::serialize, client_type_ };
-            async_call_one_way(heartbeats_flag, flag, heartbeats_flag);
+            request_content content;
+            content.protocol = heartbeats_flag;
+            content.body = heartbeats_flag;
+            async_call_one_way(flag, content);
         }
         catch (std::exception& e)
         {
@@ -234,7 +273,10 @@ private:
             for (auto& topic_name : sub_router::singleton::get()->get_all_topic())
             {
                 client_flag flag{ serialize_mode::serialize, client_type_ };
-                async_call_one_way(topic_name, flag, subscribe_topic_flag);
+                request_content content;
+                content.protocol = topic_name;
+                content.body = subscribe_topic_flag;
+                async_call_one_way(flag, content);
             }
         }
         catch (std::exception& e)

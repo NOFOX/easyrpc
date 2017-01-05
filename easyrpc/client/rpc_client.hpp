@@ -32,7 +32,10 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(protocol.name(), flag, serialize(std::forward<Args>(args)...));
+        request_content content;
+        content.protocol = protocol.name();
+        content.body = serialize(std::forward<Args>(args)...);
+        call_one_way(flag, content);
     }
 
     template<typename Protocol, typename... Args>
@@ -41,7 +44,10 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        auto ret = call_two_way(protocol.name(), flag, serialize(std::forward<Args>(args)...));
+        request_content content;
+        content.protocol = protocol.name();
+        content.body = serialize(std::forward<Args>(args)...);
+        auto ret = call_two_way(flag, content);
         return protocol.deserialize(std::string(&ret[0], ret.size()));
     }
 
@@ -51,7 +57,10 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        call_one_way(protocol, flag, body);
+        request_content content;
+        content.protocol = protocol;
+        content.body = body;
+        call_one_way(flag, content);
     }
 
     template<typename ReturnType>
@@ -60,7 +69,10 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        auto ret = call_two_way(protocol, flag, body);
+        request_content content;
+        content.protocol = protocol;
+        content.body = body;
+        auto ret = call_two_way(flag, content);
         return std::string(&ret[0], ret.size());
     }
 
@@ -69,7 +81,8 @@ public:
     class rpc_task
     {
     public:
-        rpc_task(const std::string& buffer, rpc_client* client) : buffer_(buffer), client_(client) {}
+        rpc_task(const std::string& call_id, const std::string& buffer, rpc_client* client) 
+            : call_id_(call_id), buffer_(buffer), client_(client) {}
 
         template<typename Function>
         void result(const Function& func)
@@ -83,10 +96,11 @@ public:
                 return func(ret); 
             };
             /* task_("Hello C++"); */
-            client_->add_bind_func(gen_uuid(), task_);
+            client_->add_bind_func(call_id_, task_);
         }
 
     private:
+        std::string call_id_;
         std::string buffer_;
         task_t task_;
         rpc_client* client_;
@@ -95,20 +109,26 @@ public:
     template<typename Protocol, typename... Args>
     auto async_call(const Protocol& protocol, Args&&... args)
     {
-        std::string body = serialize(std::forward<Args>(args)...);
-        std::string proto_name = protocol.name();
-        unsigned int protocol_len = static_cast<unsigned int>(proto_name.size());
-        unsigned int body_len = static_cast<unsigned int>(body.size());
-        if (protocol_len + body_len > max_buffer_len)
+        request_content content;
+        content.call_id = gen_uuid();
+        content.protocol = protocol.name();
+        content.body = serialize(std::forward<Args>(args)...);
+
+        client_flag flag{ serialize_mode::serialize, client_type_ };
+        request_header header;
+        header.call_id_len = static_cast<unsigned int>(content.call_id.size());
+        header.protocol_len = static_cast<unsigned int>(content.protocol.size());
+        header.body_len = static_cast<unsigned int>(content.body.size());
+        header.flag = flag;
+        if (header.call_id_len + header.protocol_len + header.body_len > max_buffer_len)
         {
             throw std::runtime_error("Send data is too big");
         }
 
         /* try_connect(); */
-        client_flag flag{ serialize_mode::serialize, client_type_ };
-        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, proto_name, body);
+        std::string buffer = get_buffer(request_data{ header, content });
         using return_type = typename Protocol::return_type;
-        return rpc_task<return_type>{ buffer, this };
+        return rpc_task<return_type>{ content.call_id, buffer, this };
     }
 
     void add_bind_func(const std::string& call_id, const task_t& task)

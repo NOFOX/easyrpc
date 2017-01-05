@@ -53,22 +53,22 @@ public:
         stop_ios_thread();
     }
 
-    void call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
+    void call_one_way(const client_flag& flag, const request_content& content)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        write(protocol, flag, body);
+        write(flag, content);
     }
 
-    std::vector<char> call_two_way(const std::string& protocol, const client_flag& flag, const std::string& body)
+    std::vector<char> call_two_way(const client_flag& flag, const request_content& content)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        write(protocol, flag, body);
+        write(flag, content);
         return read();
     }
 
-    void async_call_one_way(const std::string& protocol, const client_flag& flag, const std::string& body)
+    void async_call_one_way(const client_flag& flag, const request_content& content)
     {
-        async_write(protocol, flag, body);
+        async_write(flag, content);
     }
 
     void disconnect()
@@ -83,12 +83,13 @@ public:
     }
 
 protected:
-    std::string get_buffer(const request_header& head, const std::string& protocol, const std::string& body)
+    std::string get_buffer(const request_data& data)
     {
         std::string buffer;
-        buffer.append(reinterpret_cast<const char*>(&head), sizeof(head));
-        buffer.append(protocol);
-        buffer.append(body);
+        buffer.append(reinterpret_cast<const char*>(&data.header), sizeof(data.header));
+        buffer.append(data.content.call_id);
+        buffer.append(data.content.protocol);
+        buffer.append(data.content.body);
         return std::move(buffer);
     }
 
@@ -136,29 +137,37 @@ private:
         }
     }
 
-    void write(const std::string& protocol, const client_flag& flag, const std::string& body)
+    void write(const client_flag& flag, const request_content& content)
     {
-        unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
-        unsigned int body_len = static_cast<unsigned int>(body.size());
-        if (protocol_len + body_len > max_buffer_len)
+        request_header header;
+        header.call_id_len = static_cast<unsigned int>(content.call_id.size());
+        header.protocol_len = static_cast<unsigned int>(content.protocol.size());
+        header.body_len = static_cast<unsigned int>(content.body.size());
+        header.flag = flag;
+
+        if (header.call_id_len + header.protocol_len + header.body_len > max_buffer_len)
         {
             throw std::runtime_error("Send data is too big");
         }
 
-        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
+        std::string buffer = get_buffer(request_data{ header, content });
         write_impl(buffer);
     }
 
-    void async_write(const std::string& protocol, const client_flag& flag, const std::string& body)
+    void async_write(const client_flag& flag, const request_content& content)
     {
-        unsigned int protocol_len = static_cast<unsigned int>(protocol.size());
-        unsigned int body_len = static_cast<unsigned int>(body.size());
-        if (protocol_len + body_len > max_buffer_len)
+        request_header header;
+        header.call_id_len = static_cast<unsigned int>(content.call_id.size());
+        header.protocol_len = static_cast<unsigned int>(content.protocol.size());
+        header.body_len = static_cast<unsigned int>(content.body.size());
+        header.flag = flag;
+
+        if (header.call_id_len + header.protocol_len + header.body_len > max_buffer_len)
         {
             throw std::runtime_error("Send data is too big");
         }
 
-        std::string buffer = get_buffer(request_header{ protocol_len, body_len, flag }, protocol, body);
+        std::string buffer = get_buffer(request_data{ header, content });
         async_write_impl(buffer);
     }
 
@@ -232,7 +241,7 @@ private:
     void check_head()
     {
         memcpy(&res_head_, res_head_buf_, sizeof(res_head_buf_));
-        if (res_head_.body_len > max_buffer_len)
+        if (res_head_.call_id_len + res_head_.body_len > max_buffer_len)
         {
             throw std::runtime_error("Body len is too big");
         }
@@ -241,7 +250,7 @@ private:
     std::vector<char> read_body()
     {
         body_.clear();
-        body_.resize(res_head_.body_len);
+        body_.resize(res_head_.call_id_len + res_head_.body_len);
         boost::system::error_code ec;
         boost::asio::read(socket_, boost::asio::buffer(body_), ec); 
         if (ec)

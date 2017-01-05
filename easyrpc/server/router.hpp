@@ -25,7 +25,7 @@ public:
     invoker_function(const function_t& func, std::size_t param_size) 
         : func_(func), param_size_(param_size) {}
 
-    void operator()(const std::string& body, const connection_ptr& conn)
+    void operator()(const std::string& call_id, const std::string& body, const connection_ptr& conn)
     {
         try
         {
@@ -34,7 +34,7 @@ public:
             func_(parser, result);
             if (!result.empty())
             {
-                conn->async_write(result);
+                conn->async_write(call_id, result);
             }
         }
         catch (std::exception& e)
@@ -61,7 +61,7 @@ public:
     invoker_function_raw() = default;
     invoker_function_raw(const function_t& func) : func_(func) {}
 
-    void operator()(const std::string& body, const connection_ptr& conn)
+    void operator()(const std::string& call_id, const std::string& body, const connection_ptr& conn)
     {
         try
         {
@@ -69,7 +69,7 @@ public:
             func_(body, result);
             if (!result.empty())
             {
-                conn->async_write(result);
+                conn->async_write(call_id, result);
             }
         }
         catch (std::exception& e)
@@ -157,8 +157,8 @@ public:
         return false;
     }
 
-    bool route(const std::string& protocol, const std::string& body, 
-               const client_flag& flag, const connection_ptr& conn)
+    bool route(const std::string& call_id, const std::string& protocol, 
+               const std::string& body, const client_flag& flag, const connection_ptr& conn)
     {
         if (flag.type == client_type::rpc_client)
         {
@@ -170,7 +170,7 @@ public:
                 {
                     return false;
                 }
-                threadpool_.add_task(iter->second, body, conn);
+                threadpool_.add_task(iter->second, call_id, body, conn);
             }
             else if (flag.mode == serialize_mode::non_serialize)
             {
@@ -180,7 +180,7 @@ public:
                 {
                     return false;
                 }
-                threadpool_.add_task(iter->second, body, conn);           
+                threadpool_.add_task(iter->second, call_id, body, conn);           
             }
             else
             {

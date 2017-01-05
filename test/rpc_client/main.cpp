@@ -59,7 +59,7 @@ void test_func2()
 
 int main()
 {
-#if 1
+#if 0
     try
     {
         /* rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run(); */
@@ -75,7 +75,7 @@ int main()
     }
 #endif
 
-#if 0
+#if 1
     try
     {
         rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run();

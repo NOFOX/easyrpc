@@ -27,14 +27,20 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        call_one_way(topic_name, flag, serialize(std::forward<Args>(args)...));
+        request_content content;
+        content.protocol = topic_name;
+        content.body = serialize(std::forward<Args>(args)...);
+        call_one_way(flag, content);
     }
 
     void publish_raw(const std::string& topic_name, const std::string& body)
     {
         try_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        call_one_way(topic_name, flag, body);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = body;
+        call_one_way(flag, content);
     }
 
     template<typename... Args>
@@ -42,14 +48,20 @@ public:
     {
         try_connect();
         client_flag flag{ serialize_mode::serialize, client_type_ };
-        async_call_one_way(topic_name, flag, serialize(std::forward<Args>(args)...));
+        request_content content;
+        content.protocol = topic_name;
+        content.body = serialize(std::forward<Args>(args)...);
+        async_call_one_way(flag, content);
     }
 
     void async_publish_raw(const std::string& topic_name, const std::string& body)
     {
         try_connect();
         client_flag flag{ serialize_mode::non_serialize, client_type_ };
-        async_call_one_way(topic_name, flag, body);
+        request_content content;
+        content.protocol = topic_name;
+        content.body = body;
+        async_call_one_way(flag, content);
     }
 };
 
