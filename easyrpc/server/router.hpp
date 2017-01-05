@@ -157,30 +157,29 @@ public:
         return false;
     }
 
-    bool route(const std::string& call_id, const std::string& protocol, 
-               const std::string& body, const client_flag& flag, const connection_ptr& conn)
+    bool route(const request_content& content, const client_flag& flag, const connection_ptr& conn)
     {
         if (flag.type == client_type::rpc_client)
         {
             if (flag.mode == serialize_mode::serialize)
             {
                 std::lock_guard<std::mutex> lock(map_mutex_);
-                auto iter = invoker_map_.find(protocol);
+                auto iter = invoker_map_.find(content.protocol);
                 if (iter == invoker_map_.end())
                 {
                     return false;
                 }
-                threadpool_.add_task(iter->second, call_id, body, conn);
+                threadpool_.add_task(iter->second, content.call_id, content.body, conn);
             }
             else if (flag.mode == serialize_mode::non_serialize)
             {
                 std::lock_guard<std::mutex> lock(raw_map_mutex_);
-                auto iter = invoker_raw_map_.find(protocol);
+                auto iter = invoker_raw_map_.find(content.protocol);
                 if (iter == invoker_raw_map_.end())
                 {
                     return false;
                 }
-                threadpool_.add_task(iter->second, call_id, body, conn);           
+                threadpool_.add_task(iter->second, content.call_id, content.body, conn);           
             }
             else
             {
@@ -190,11 +189,11 @@ public:
         }
         else if (flag.type == client_type::pub_client)
         {
-            threadpool_.add_task(pub_coming_helper_, protocol, body, flag.mode);
+            threadpool_.add_task(pub_coming_helper_, content.protocol, content.body, flag.mode);
         }
         else if (flag.type == client_type::sub_client)
         {
-            threadpool_.add_task(sub_coming_helper_, protocol, body, conn);
+            threadpool_.add_task(sub_coming_helper_, content.protocol, content.body, conn);
         }
         else
         {

@@ -115,9 +115,7 @@ public:
 private:
     void listen()
     {
-        auto route_func = std::bind(&server::route, this, 
-                                    std::placeholders::_1, std::placeholders::_2,
-                                    std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+        auto route_func = std::bind(&server::route, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
         auto handle_error_func = std::bind(&server::handle_error, this, std::placeholders::_1);
         for (auto& ep : endpoint_vec_)
         {
@@ -143,10 +141,9 @@ private:
                                                                  this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
 
-    bool route(const std::string& call_id, const std::string& protocol, 
-               const std::string& body, const client_flag& flag, const connection_ptr& conn)
+    bool route(const request_content& content, const client_flag& flag, const connection_ptr& conn)
     {
-        return router::singleton::get()->route(call_id, protocol, body, flag, conn); 
+        return router::singleton::get()->route(content, flag, conn); 
     }
 
     void handle_error(const connection_ptr& conn)

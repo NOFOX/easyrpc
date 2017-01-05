@@ -18,8 +18,7 @@ namespace easyrpc
 class connection;
 using connection_ptr = std::shared_ptr<connection>;
 using connection_weak_ptr = std::weak_ptr<connection>;
-using router_callback = std::function<bool(const std::string&, const std::string&, const std::string&, 
-                                           const client_flag&, const std::shared_ptr<connection>&)>;
+using router_callback = std::function<bool(const request_content&, const client_flag&, const std::shared_ptr<connection>&)>;
 using handle_error_callback = std::function<void(const connection_ptr&)>;
 
 class connection : public std::enable_shared_from_this<connection>
@@ -173,10 +172,11 @@ private:
                 return;
             }
 
-            bool ok = route_(std::string(&protocol_and_body_[0], req_head_.call_id_len),
-                             std::string(&protocol_and_body_[req_head_.call_id_len], req_head_.protocol_len), 
-                             std::string(&protocol_and_body_[req_head_.call_id_len + req_head_.protocol_len], req_head_.body_len), 
-                             req_head_.flag, self);
+            request_content content;
+            content.call_id.assign(&protocol_and_body_[0], req_head_.call_id_len);
+            content.protocol.assign(&protocol_and_body_[req_head_.call_id_len], req_head_.protocol_len);
+            content.body.assign(&protocol_and_body_[req_head_.call_id_len + req_head_.protocol_len], req_head_.body_len);
+            bool ok = route_(content, req_head_.flag, self);
             if (!ok)
             {
                 log_warn("Router failed");
