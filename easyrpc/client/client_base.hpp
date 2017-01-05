@@ -140,9 +140,9 @@ private:
     void write(const client_flag& flag, const request_content& content)
     {
         request_header header;
-        header.call_id_len = static_cast<unsigned int>(content.call_id.size());
-        header.protocol_len = static_cast<unsigned int>(content.protocol.size());
-        header.body_len = static_cast<unsigned int>(content.body.size());
+        header.call_id_len = content.call_id.size();
+        header.protocol_len = content.protocol.size();
+        header.body_len = content.body.size();
         header.flag = flag;
 
         if (header.call_id_len + header.protocol_len + header.body_len > max_buffer_len)
@@ -157,9 +157,9 @@ private:
     void async_write(const client_flag& flag, const request_content& content)
     {
         request_header header;
-        header.call_id_len = static_cast<unsigned int>(content.call_id.size());
-        header.protocol_len = static_cast<unsigned int>(content.protocol.size());
-        header.body_len = static_cast<unsigned int>(content.body.size());
+        header.call_id_len = content.call_id.size();
+        header.protocol_len = content.protocol.size();
+        header.body_len = content.body.size();
         header.flag = flag;
 
         if (header.call_id_len + header.protocol_len + header.body_len > max_buffer_len)
