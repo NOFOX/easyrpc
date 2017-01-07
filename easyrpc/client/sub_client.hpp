@@ -205,7 +205,7 @@ private:
 
             if (async_check_head())
             {
-                async_read_protocol_and_body();
+                async_read_content();
             }
         });
     }
@@ -217,11 +217,11 @@ private:
         return (len > 0 && len < max_buffer_len) ? true : false;
     }
 
-    void async_read_protocol_and_body()
+    void async_read_content()
     {
-        protocol_and_body_.clear();
-        protocol_and_body_.resize(push_head_.protocol_len + push_head_.body_len);
-        boost::asio::async_read(get_socket(), boost::asio::buffer(protocol_and_body_), 
+        content_.clear();
+        content_.resize(push_head_.protocol_len + push_head_.body_len);
+        boost::asio::async_read(get_socket(), boost::asio::buffer(content_), 
                                 [this](boost::system::error_code ec, std::size_t)
         {
             async_read_head();
@@ -239,8 +239,8 @@ private:
             }
 
             push_content content;
-            content.protocol.assign(&protocol_and_body_[0], push_head_.protocol_len);
-            content.body.assign(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len);
+            content.protocol.assign(&content_[0], push_head_.protocol_len);
+            content.body.assign(&content_[push_head_.protocol_len], push_head_.body_len);
             bool ok = sub_router::singleton::get()->route(push_head_.mode, content);
             if (!ok)
             {
@@ -318,7 +318,7 @@ private:
 private:
     char push_head_buf_[push_header_len];
     push_header push_head_;
-    std::vector<char> protocol_and_body_;
+    std::vector<char> content_;
 
     boost::asio::io_service heartbeats_ios_;
     boost::asio::io_service::work heartbeats_work_;

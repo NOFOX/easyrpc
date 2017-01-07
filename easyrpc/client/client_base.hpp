@@ -224,7 +224,7 @@ private:
         auto guard = make_guard([this]{ stop_timer(); });
         read_head();
         check_head();
-        return read_body();
+        return read_content();
     }
 
     void read_head()
@@ -247,18 +247,18 @@ private:
         }
     }
 
-    std::vector<char> read_body()
+    std::vector<char> read_content()
     {
-        body_.clear();
-        body_.resize(res_head_.call_id_len + res_head_.body_len);
+        content_.clear();
+        content_.resize(res_head_.call_id_len + res_head_.body_len);
         boost::system::error_code ec;
-        boost::asio::read(socket_, boost::asio::buffer(body_), ec); 
+        boost::asio::read(socket_, boost::asio::buffer(content_), ec); 
         if (ec)
         {
             is_connected_ = false;
             throw std::runtime_error(ec.message());
         }
-        return body_;
+        return content_;
     }
 
     void start_timer()
@@ -327,7 +327,7 @@ private:
     std::unique_ptr<std::thread> thread_;
     char res_head_buf_[response_header_len];
     response_header res_head_;
-    std::vector<char> body_;
+    std::vector<char> content_;
 
     boost::asio::io_service timer_ios_;
     boost::asio::io_service::work timer_work_;

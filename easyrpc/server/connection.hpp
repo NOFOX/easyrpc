@@ -137,7 +137,7 @@ private:
 
             if (check_head())
             {
-                read_protocol_and_body();
+                read_content();
                 guard.dismiss();
             }
         });
@@ -150,12 +150,12 @@ private:
         return (len > 0 && len < max_buffer_len) ? true : false;
     }
 
-    void read_protocol_and_body()
+    void read_content()
     {
-        protocol_and_body_.clear();
-        protocol_and_body_.resize(req_head_.call_id_len + req_head_.protocol_len + req_head_.body_len);
+        content_.clear();
+        content_.resize(req_head_.call_id_len + req_head_.protocol_len + req_head_.body_len);
         auto self(this->shared_from_this());
-        boost::asio::async_read(socket_, boost::asio::buffer(protocol_and_body_), 
+        boost::asio::async_read(socket_, boost::asio::buffer(content_), 
                                 [this, self](boost::system::error_code ec, std::size_t)
         {
             read_head();
@@ -173,9 +173,9 @@ private:
             }
 
             request_content content;
-            content.call_id.assign(&protocol_and_body_[0], req_head_.call_id_len);
-            content.protocol.assign(&protocol_and_body_[req_head_.call_id_len], req_head_.protocol_len);
-            content.body.assign(&protocol_and_body_[req_head_.call_id_len + req_head_.protocol_len], req_head_.body_len);
+            content.call_id.assign(&content_[0], req_head_.call_id_len);
+            content.protocol.assign(&content_[req_head_.call_id_len], req_head_.protocol_len);
+            content.body.assign(&content_[req_head_.call_id_len + req_head_.protocol_len], req_head_.body_len);
             bool ok = route_(content, req_head_.flag, self);
             if (!ok)
             {
@@ -273,7 +273,7 @@ private:
     boost::asio::ip::tcp::socket socket_;
     char req_head_buf_[request_header_len];
     request_header req_head_;
-    std::vector<char> protocol_and_body_;
+    std::vector<char> content_;
     std::size_t timeout_milli_ = 0;
     router_callback route_;
     handle_error_callback handle_error_;
