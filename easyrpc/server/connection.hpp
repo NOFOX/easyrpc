@@ -77,7 +77,7 @@ public:
         write_impl(buffer);
     }
 
-    void async_write(const std::string& body, const std::string& call_id = "")
+    void async_write(const std::string& call_id, const std::string& body)
     {
         unsigned int call_id_len = static_cast<unsigned int>(call_id.size());
         unsigned int body_len = static_cast<unsigned int>(body.size());

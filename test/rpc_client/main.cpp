@@ -59,22 +59,6 @@ void test_func2()
 
 int main()
 {
-#if 0
-    try
-    {
-        /* rpc_app.connect({ "127.0.0.1", 50051 }).timeout(3000).run(); */
-        rpc_app.async_call(echo, "Hello").result([](const auto& ret)
-        {
-            std::cout << ret << std::endl;
-        });
-    }
-    catch (std::exception& e)
-    {
-        easyrpc::log_warn(e.what());
-        return 0;
-    }
-#endif
-
 #if 1
     try
     {

@@ -83,16 +83,6 @@ public:
     }
 
 protected:
-    std::string get_buffer(const request_data& data)
-    {
-        std::string buffer;
-        buffer.append(reinterpret_cast<const char*>(&data.header), sizeof(data.header));
-        buffer.append(data.content.call_id);
-        buffer.append(data.content.protocol);
-        buffer.append(data.content.body);
-        return std::move(buffer);
-    }
-
     boost::asio::ip::tcp::socket& get_socket()
     {
         return socket_;
@@ -114,6 +104,16 @@ protected:
     }
 
 private:
+    std::string get_buffer(const request_data& data)
+    {
+        std::string buffer;
+        buffer.append(reinterpret_cast<const char*>(&data.header), sizeof(data.header));
+        buffer.append(data.content.call_id);
+        buffer.append(data.content.protocol);
+        buffer.append(data.content.body);
+        return std::move(buffer);
+    }
+
     void connect()
     {
         auto begin_time = std::chrono::high_resolution_clock::now();

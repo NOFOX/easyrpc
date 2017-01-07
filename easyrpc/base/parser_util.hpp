@@ -1,6 +1,7 @@
 #ifndef _PARSER_UTIL_H
 #define _PARSER_UTIL_H
 
+#include <string>
 #include <type_traits>
 #include <easypack/easypack.hpp>
 
