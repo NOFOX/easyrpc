@@ -133,27 +133,27 @@ public:
         return false;
     }
 
-    bool route(const std::string& protocol, const std::string& body, serialize_mode mode)
+    bool route(serialize_mode mode, const push_content& content)
     {
         if (mode == serialize_mode::serialize)
         {
             std::lock_guard<std::mutex> lock(map_mutex_);
-            auto iter = invoker_map_.find(protocol);
+            auto iter = invoker_map_.find(content.protocol);
             if (iter == invoker_map_.end())
             {
                 return false;
             }
-            iter->second(body);
+            iter->second(content.body);
         }
         else if (mode == serialize_mode::non_serialize)
         {
             std::lock_guard<std::mutex> lock(raw_map_mutex_);
-            auto iter = invoker_raw_map_.find(protocol);
+            auto iter = invoker_raw_map_.find(content.protocol);
             if (iter == invoker_raw_map_.end())
             {
                 return false;
             }
-            iter->second(body);
+            iter->second(content.body);
         }
         return true;
     }

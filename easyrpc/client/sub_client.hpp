@@ -238,8 +238,10 @@ private:
                 return;
             }
 
-            bool ok = sub_router::singleton::get()->route(std::string(&protocol_and_body_[0], push_head_.protocol_len), 
-                                                         std::string(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len), push_head_.mode);
+            push_content content;
+            content.protocol.assign(&protocol_and_body_[0], push_head_.protocol_len);
+            content.body.assign(&protocol_and_body_[push_head_.protocol_len], push_head_.body_len);
+            bool ok = sub_router::singleton::get()->route(push_head_.mode, content);
             if (!ok)
             {
                 log_warn("Router failed");
