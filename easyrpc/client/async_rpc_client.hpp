@@ -39,7 +39,6 @@ public:
         {
             task_ = [&func, this](const std::string& body)
             {
-                std::cout << "body: " << body << std::endl;
                 return func(deserialize(std::string(&body[0], body.size()))); 
             };
             client_->async_call_one_way(flag_, content_);
@@ -133,17 +132,7 @@ private:
             call_id.assign(&content_[0], res_head_.call_id_len);
             std::string body;
             body.assign(&content_[res_head_.call_id_len], res_head_.body_len);
-            std::cout << "call id: " << call_id << std::endl;
-            std::cout << "body: " << body << std::endl;
-            /* push_content content; */
-            /* content.protocol.assign(&content_[0], res_head_.protocol_len); */
-            /* content.body.assign(&content_[res_head_.protocol_len], res_head_.body_len); */
-            /* bool ok = sub_router::singleton::get()->route(res_head_.mode, content); */
-            /* if (!ok) */
-            /* { */
-                /* log_warn("Router failed"); */
-                /* return; */
-            /* } */
+            route(call_id, body);
         });
     }
 
@@ -151,6 +140,18 @@ private:
     {
         std::lock_guard<std::mutex> lock(task_mutex_);
         task_map_.emplace(call_id, task);
+    }
+
+    void route(const std::string& call_id, const std::string& body)
+    {
+        std::lock_guard<std::mutex> lock(task_mutex_);
+        auto iter = task_map_.find(call_id);
+        if (iter != task_map_.end())
+        {
+            iter->second(body);
+            task_map_.erase(iter);
+            std::cout << "map size: " << task_map_.size() << std::endl;
+        }
     }
 
     void sync_connect()

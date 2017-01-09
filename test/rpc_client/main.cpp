@@ -33,30 +33,6 @@ void test_func()
     }
 }
 
-void test_func2()
-{
-    while (true)
-    {
-        try
-        {
-            std::string ret = rpc_app.call(echo, "Hello world");
-            std::cout << ret << std::endl;
-
-            person_info_req req { 12345678, "Jack" };
-            auto vec = rpc_app.call(query_person_info, req);
-            for (auto& res : vec)
-            {
-                std::cout << res.card_id << ", " << res.name << ", " << res.age << ", " << res.national << std::endl;
-            }
-        }
-        catch (std::exception& e)
-        {
-            easyrpc::log_warn(e.what());
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
-}
-
 int main()
 {
 #if 1
@@ -81,7 +57,7 @@ int main()
     }
 
     std::thread t(test_func);
-    std::thread t2(test_func2);
+    std::thread t2(test_func);
 
     t.join();
     t2.join();
