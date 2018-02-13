@@ -59,7 +59,7 @@ A modern RPC framework based on protobuf
         req->set_num(1024);
 
         // 3.异步调用echo函数
-        client->call(message, [](const std::shared_ptr<result>& ret)
+        client->call(req, [](const std::shared_ptr<result>& ret)
         {
             log_info << ret->message->DebugString();
         });
